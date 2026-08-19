@@ -1,0 +1,34 @@
+{
+  "app": {
+    "title": "Taptico",
+    "subtitle": "Haptic Fidget & Focus Tool",
+    "bundle_id": "com.orehruoy.taptico",
+    "sku": "taptico-ios-001",
+    "primary_category": "Utilities",
+    "secondary_category": "Productivity",
+    "age_rating": "4+",
+    "price_tier": "free_with_iap"
+  },
+  "keywords": "adhd,sensory,stress,relief,desk,tactile,taptic,dial,switch,gadget,quiet,calm,instrument,mindful",
+  "description": "Taptico is an ad-free haptic fidget and focus instrument for desk workers and anyone who benefits from tactile sensory input.\n\nSpin a precision combination lock with selection ticks. Snap heavy industrial toggle switches. Tilt your phone to roll metallic bearings in a sealed chamber. Modulate ambient noise on a theremin-style touch surface. Type on a mechanical key matrix with double-pulse haptics.\n\nFree forever: Combination Lock and Toggle Switches. Lifetime Unlock (priced by Apple for your region) opens all modules, premium metallic themes, and Desk Stand mode.\n\nNo ads. No accounts. No tracking. 100% on-device.",
+  "promotional_text": "Premium tactile fidget tools with CoreHaptics feedback. Two modules free, lifetime unlock for the rest.",
+  "support_url": "https://github.com/orehruoy/taptico",
+  "marketing_url": "https://github.com/orehruoy/taptico",
+  "privacy_policy_url": "https://orehruoy.github.io/Taptico/privacy.html",
+  "in_app_purchases": [
+    {
+      "product_id": "com.orehruoy.taptico.lifetime",
+      "reference_name": "Lifetime Unlock",
+      "type": "non_consumable",
+      "price_usd": 4.99,
+      "display_name": "Lifetime Unlock",
+      "description": "Unlock all modules, premium themes, and Desk Stand mode forever."
+    }
+  ],
+  "screenshots": {
+    "iphone_6_7": [],
+    "iphone_6_5": [],
+    "iphone_5_5": []
+  },
+  "review_notes": "Taptico is a sensory focus tool, not a medical app. Two modules are free without IAP. The paywall always shows Restore Purchases. The displayed IAP price is the StoreKit localized SKProduct string (never hardcoded). No login required. Theremin audio uses AVAudioSessionCategoryPlayback so it continues with the hardware mute switch, as an instrument."
+}

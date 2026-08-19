@@ -1,0 +1,32 @@
+{
+  "version": {
+    "major": 3,
+    "minor": 0
+  },
+  "products": [
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "TAPTICO_LIFETIME",
+      "localizations": [
+        {
+          "description": "Unlock all fidget modules, premium metallic themes, and Desk Stand mode forever.",
+          "displayName": "Lifetime Unlock",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.orehruoy.taptico.lifetime",
+      "referenceName": "Lifetime Unlock",
+      "type": "NonConsumable"
+    }
+  ],
+  "settings": {
+    "_applicationInternalID": "",
+    "_developerTeamID": "",
+    "_failTransactionsEnabled": false,
+    "_lastSynchronizedDate": 0,
+    "_locale": "en_US",
+    "_storefront": "USA",
+    "_storeKitErrors": []
+  }
+}

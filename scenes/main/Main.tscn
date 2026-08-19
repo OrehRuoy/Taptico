@@ -1,0 +1,359 @@
+[gd_scene load_steps=11 format=3 uid="uid://main_scene"]
+
+[ext_resource type="Script" path="res://scripts/ui/module_carousel.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/ui/paywall_overlay.gd" id="2"]
+[ext_resource type="Texture2D" path="res://assets/modules/ui_desk_bg.png" id="3"]
+[ext_resource type="Texture2D" path="res://assets/modules/ui_header_bar.png" id="4"]
+[ext_resource type="Texture2D" path="res://assets/modules/logo_wordmark.png" id="5"]
+[ext_resource type="Texture2D" path="res://assets/modules/logo_mark.png" id="6"]
+[ext_resource type="Texture2D" path="res://assets/modules/title_plate.png" id="7"]
+[ext_resource type="Texture2D" path="res://assets/modules/paywall_frame.png" id="8"]
+[ext_resource type="Texture2D" path="res://assets/modules/paywall_hero.png" id="9"]
+[ext_resource type="Texture2D" path="res://assets/modules/btn_unlock.png" id="10"]
+[ext_resource type="Texture2D" path="res://assets/modules/btn_shop.png" id="11"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+texture = ExtResource("3")
+expand_mode = 1
+stretch_mode = 6
+mouse_filter = 2
+
+[node name="HeaderBar" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 118.0
+texture = ExtResource("4")
+expand_mode = 1
+stretch_mode = 6
+modulate = Color(1, 1, 1, 0.55)
+mouse_filter = 2
+
+[node name="Header" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 10.0
+offset_bottom = 118.0
+mouse_filter = 2
+
+[node name="LogoMark" type="TextureRect" parent="Header"]
+visible = false
+layout_mode = 1
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 44.0
+offset_bottom = 44.0
+texture = ExtResource("6")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Logo" type="TextureRect" parent="Header"]
+layout_mode = 1
+offset_left = 8.0
+offset_top = 6.0
+offset_right = 200.0
+offset_bottom = 104.0
+texture = ExtResource("5")
+expand_mode = 1
+stretch_mode = 4
+mouse_filter = 2
+
+[node name="UnlockButton" type="TextureButton" parent="Header"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -142.0
+offset_top = 12.0
+offset_right = -10.0
+offset_bottom = 50.0
+ignore_texture_size = true
+stretch_mode = 0
+texture_normal = ExtResource("11")
+
+[node name="TitleBand" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 122.0
+offset_bottom = 176.0
+mouse_filter = 0
+
+[node name="TitlePlate" type="TextureRect" parent="TitleBand"]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 10.0
+offset_top = 6.0
+offset_right = -10.0
+offset_bottom = 74.0
+texture = ExtResource("7")
+expand_mode = 1
+stretch_mode = 6
+mouse_filter = 2
+
+[node name="TitleLabel" type="Label" parent="TitleBand"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 16.0
+offset_top = 0.0
+offset_right = -16.0
+offset_bottom = 28.0
+theme_override_colors/font_color = Color(0.96, 0.86, 0.58, 1)
+theme_override_colors/font_outline_color = Color(0.08, 0.06, 0.04, 0.55)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+text = "Combination Lock"
+
+[node name="SubtitleLabel" type="Label" parent="TitleBand"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 16.0
+offset_top = 26.0
+offset_right = -16.0
+offset_bottom = 40.0
+theme_override_colors/font_color = Color(0.84, 0.7, 0.44, 1)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+mouse_filter = 2
+text = "FREE"
+
+[node name="HintLabel" type="Label" parent="TitleBand"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 18.0
+offset_top = 38.0
+offset_right = -112.0
+offset_bottom = 52.0
+theme_override_colors/font_color = Color(0.72, 0.74, 0.77, 1)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+autowrap_mode = 0
+mouse_filter = 2
+text = "Swipe this bar to change toys."
+
+[node name="ReachButton" type="Button" parent="TitleBand"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -108.0
+offset_top = 26.0
+offset_right = -8.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 11
+text = "Two hands"
+flat = true
+
+[node name="Stage" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 204.0
+offset_right = -14.0
+offset_bottom = -122.0
+mouse_filter = 1
+
+[node name="ModuleHost" type="Control" parent="Stage"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="NavBar" type="ScrollContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = -114.0
+offset_right = -8.0
+offset_bottom = -12.0
+horizontal_scroll_mode = 3
+vertical_scroll_mode = 0
+
+[node name="ChipRow" type="HBoxContainer" parent="NavBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="Paywall" type="Control" parent="."]
+visible = false
+z_index = 120
+z_as_relative = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 0
+script = ExtResource("2")
+
+[node name="Dim" type="ColorRect" parent="Paywall"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.02, 0.02, 0.03, 0.82)
+
+[node name="Frame" type="TextureRect" parent="Paywall"]
+z_index = 4
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -360.0
+offset_right = 180.0
+offset_bottom = 400.0
+texture = ExtResource("8")
+expand_mode = 1
+stretch_mode = 0
+mouse_filter = 2
+
+[node name="Inner" type="ColorRect" parent="Paywall"]
+z_index = 0
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -148.0
+offset_top = -318.0
+offset_right = 148.0
+offset_bottom = 358.0
+color = Color(0, 0, 0, 1)
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Paywall"]
+z_index = 1
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -140.0
+offset_top = -292.0
+offset_right = 140.0
+offset_bottom = 348.0
+
+[node name="VBox" type="VBoxContainer" parent="Paywall/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Hero" type="TextureRect" parent="Paywall/Panel/VBox"]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+texture = ExtResource("9")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Logo" type="TextureRect" parent="Paywall/Panel/VBox"]
+visible = false
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+texture = ExtResource("5")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Kicker" type="Label" parent="Paywall/Panel/VBox"]
+visible = false
+layout_mode = 2
+text = "TAPTICO PREMIUM"
+horizontal_alignment = 1
+
+[node name="Headline" type="Label" parent="Paywall/Panel/VBox"]
+visible = false
+layout_mode = 2
+text = "Taptico Premium"
+horizontal_alignment = 1
+
+[node name="Features" type="Label" parent="Paywall/Panel/VBox"]
+visible = false
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+
+[node name="MessageLabel" type="Label" parent="Paywall/Panel/VBox"]
+visible = false
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="Paywall/Panel/VBox"]
+layout_mode = 2
+autowrap_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.7, 0.5, 1)
+theme_override_font_sizes/font_size = 12
+horizontal_alignment = 1
+
+[node name="BuyButton" type="TextureButton" parent="Paywall/Panel/VBox"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+ignore_texture_size = true
+stretch_mode = 0
+texture_normal = ExtResource("10")
+
+[node name="PriceLabel" type="Label" parent="Paywall/Panel/VBox"]
+layout_mode = 2
+text = "$4.99"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.90, 0.82, 0.58, 1)
+theme_override_font_sizes/font_size = 18
+
+[node name="Actions" type="VBoxContainer" parent="Paywall/Panel/VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="RestoreButton" type="Button" parent="Paywall/Panel/VBox/Actions"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Restore Purchases"
+
+[node name="ResetButton" type="Button" parent="Paywall/Panel/VBox/Actions"]
+visible = false
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Reset"
+
+[node name="CloseButton" type="Button" parent="Paywall/Panel/VBox/Actions"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Not Now"

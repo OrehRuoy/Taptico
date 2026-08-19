@@ -1,0 +1,46 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Archive and upload Taptico to TestFlight"
+  lane :beta do
+    xcodeproj = File.expand_path("../build/ios/Taptico.xcodeproj", __dir__)
+    export_options = File.expand_path("../ExportOptions.plist", __dir__)
+    unless File.exist?(export_options)
+      export_options = File.expand_path("../ios/ExportOptions.plist", __dir__)
+    end
+
+    clear_derived_data(derived_data_path: File.expand_path("../build/DerivedData", __dir__))
+
+    gym(
+      project: xcodeproj,
+      scheme: "Taptico",
+      configuration: "Release",
+      clean: true,
+      silent: false,
+      export_method: "app-store",
+      export_options: export_options,
+      export_team_id: ENV["APPLE_TEAM_ID"],
+      derived_data_path: File.expand_path("../build/DerivedData", __dir__),
+      output_directory: File.expand_path("../build/export", __dir__),
+      output_name: "Taptico.ipa",
+      xcargs: [
+        "CODE_SIGN_STYLE=Manual",
+        "CODE_SIGN_IDENTITY='Apple Distribution'",
+        "DEVELOPMENT_TEAM=#{ENV['APPLE_TEAM_ID']}",
+        "PROVISIONING_PROFILE=#{ENV['PROVISIONING_PROFILE_UUID'] || ENV['GODOT_IOS_PROVISIONING_PROFILE_UUID_RELEASE']}"
+      ].join(" ")
+    )
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APPSTORE_KEY_ID"],
+      issuer_id: ENV["APPSTORE_ISSUER_ID"],
+      key_content: ENV["APPSTORE_PRIVATE_KEY"],
+      is_key_content_base64: false
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true
+    )
+  end
+end

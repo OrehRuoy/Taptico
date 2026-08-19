@@ -1,0 +1,15 @@
+[config]
+name="Haptics"
+binary="Haptics.xcframework"
+initialization="haptics_init"
+deinitialization="haptics_deinit"
+
+[dependencies]
+linked=[]
+embedded=[]
+system=["Foundation.framework", "UIKit.framework", "CoreHaptics.framework", "AVFoundation.framework"]
+capabilities=[]
+files=["../../PrivacyInfo.xcprivacy"]
+linker_flags=["-ObjC"]
+
+[plist]

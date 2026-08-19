@@ -1,0 +1,119 @@
+[gd_scene load_steps=5 format=3 uid="uid://bearing_chamber"]
+
+[ext_resource type="Script" path="res://scripts/modules/bearing_chamber.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/modules/chamber_frame.png" id="2"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_ball"]
+radius = 16.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_h"]
+size = Vector2(320, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_v"]
+size = Vector2(16, 264)
+
+[node name="BearingChamber" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1")
+
+[node name="Frame" type="TextureRect" parent="."]
+layout_mode = 0
+offset_right = 320.0
+offset_bottom = 240.0
+texture = ExtResource("2")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Chamber" type="Node2D" parent="."]
+position = Vector2(195, 360)
+
+[node name="Top" type="StaticBody2D" parent="Chamber"]
+position = Vector2(0, -128)
+
+[node name="Collision" type="CollisionShape2D" parent="Chamber/Top"]
+shape = SubResource("RectangleShape2D_wall_h")
+
+[node name="Bottom" type="StaticBody2D" parent="Chamber"]
+position = Vector2(0, 128)
+
+[node name="Collision" type="CollisionShape2D" parent="Chamber/Bottom"]
+shape = SubResource("RectangleShape2D_wall_h")
+
+[node name="Left" type="StaticBody2D" parent="Chamber"]
+position = Vector2(-152, 0)
+
+[node name="Collision" type="CollisionShape2D" parent="Chamber/Left"]
+shape = SubResource("RectangleShape2D_wall_v")
+
+[node name="Right" type="StaticBody2D" parent="Chamber"]
+position = Vector2(152, 0)
+
+[node name="Collision" type="CollisionShape2D" parent="Chamber/Right"]
+shape = SubResource("RectangleShape2D_wall_v")
+
+[node name="Balls" type="Node2D" parent="Chamber"]
+
+[node name="Ball0" type="RigidBody2D" parent="Chamber/Balls"]
+position = Vector2(-35, -40)
+mass = 0.8
+gravity_scale = 1.0
+linear_damp = 0.35
+
+[node name="Collision" type="CollisionShape2D" parent="Chamber/Balls/Ball0"]
+shape = SubResource("CircleShape2D_ball")
+
+[node name="Sprite" type="Polygon2D" parent="Chamber/Balls/Ball0"]
+color = Color(0.76, 0.79, 0.84, 1)
+polygon = PackedVector2Array(-16, 0, -11, -11, 0, -16, 11, -11, 16, 0, 11, 11, 0, 16, -11, 11)
+
+[node name="Ball1" type="RigidBody2D" parent="Chamber/Balls"]
+position = Vector2(0, -60)
+mass = 0.8
+linear_damp = 0.35
+
+[node name="Collision" type="CollisionShape2D" parent="Chamber/Balls/Ball1"]
+shape = SubResource("CircleShape2D_ball")
+
+[node name="Sprite" type="Polygon2D" parent="Chamber/Balls/Ball1"]
+color = Color(0.68, 0.72, 0.78, 1)
+polygon = PackedVector2Array(-16, 0, -11, -11, 0, -16, 11, -11, 16, 0, 11, 11, 0, 16, -11, 11)
+
+[node name="Ball2" type="RigidBody2D" parent="Chamber/Balls"]
+position = Vector2(35, -30)
+mass = 0.8
+linear_damp = 0.35
+
+[node name="Collision" type="CollisionShape2D" parent="Chamber/Balls/Ball2"]
+shape = SubResource("CircleShape2D_ball")
+
+[node name="Sprite" type="Polygon2D" parent="Chamber/Balls/Ball2"]
+color = Color(0.8, 0.74, 0.62, 1)
+polygon = PackedVector2Array(-16, 0, -11, -11, 0, -16, 11, -11, 16, 0, 11, 11, 0, 16, -11, 11)
+
+[node name="Ball3" type="RigidBody2D" parent="Chamber/Balls"]
+position = Vector2(-20, 30)
+mass = 0.8
+linear_damp = 0.35
+
+[node name="Collision" type="CollisionShape2D" parent="Chamber/Balls/Ball3"]
+shape = SubResource("CircleShape2D_ball")
+
+[node name="Sprite" type="Polygon2D" parent="Chamber/Balls/Ball3"]
+color = Color(0.72, 0.76, 0.8, 1)
+polygon = PackedVector2Array(-16, 0, -11, -11, 0, -16, 11, -11, 16, 0, 11, 11, 0, 16, -11, 11)
+
+[node name="Ball4" type="RigidBody2D" parent="Chamber/Balls"]
+position = Vector2(25, 50)
+mass = 0.8
+linear_damp = 0.35
+
+[node name="Collision" type="CollisionShape2D" parent="Chamber/Balls/Ball4"]
+shape = SubResource("CircleShape2D_ball")
+
+[node name="Sprite" type="Polygon2D" parent="Chamber/Balls/Ball4"]
+color = Color(0.63, 0.67, 0.73, 1)
+polygon = PackedVector2Array(-16, 0, -11, -11, 0, -16, 11, -11, 16, 0, 11, 11, 0, 16, -11, 11)

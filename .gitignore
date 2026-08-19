@@ -1,0 +1,34 @@
+# Godot
+.godot/
+*.import
+export_credentials.cfg
+.godot/export_credentials.cfg
+
+# Build artifacts
+*.ipa
+*.xcarchive
+build/
+bin/
+*.a
+*.xcframework/
+native/**/DerivedData/
+native/**/.build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+*.p12
+*.mobileprovision
+*.pem
+.env
+.env.*
+
+# One-off image processors
+tools/
+
+# IDE
+.vscode/
+*.swp
+*.swo
