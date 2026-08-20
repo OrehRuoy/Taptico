@@ -27,6 +27,7 @@ compile_static() {
     -isysroot "$(xcrun --sdk "$sdk" --show-sdk-path)" \
     -arch "$arch" \
     "$minflag" \
+    -I "$(dirname "$src")" \
     -c "$src" -o "$obj"
 }
 
