@@ -30,6 +30,8 @@ addons/GodotFirebaseiOS/GoogleService-Info.plist
 
 # Firebase iOS plugin is huge; CI installs via scripts/setup_ios_firebase.sh
 addons/GodotFirebaseiOS/
+# SwiftGodot runtime for GodotFirebaseiOS. CI installs via setup_ios_apple_plugins_runtime.sh
+addons/GodotApplePluginsRuntime/
 
 # One-off image processors (keep committed CI helpers under tools/ios)
 tools/*

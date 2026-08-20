@@ -25,9 +25,12 @@ Committed in `export_presets.cfg`:
 
 - Firebase project: `taptico-9bbe6`
 - iOS app: `com.orehruoy.taptico`
-- CI installs GodotFirebaseiOS **0.5.6** and the Circuit Sort / StimPad export-plugin patch
+- CI installs **GodotApplePluginsRuntime** first (`SwiftGodotRuntime.xcframework`), then GodotFirebaseiOS **0.5.6** and the Circuit Sort / StimPad export-plugin patch
+- Without SwiftGodotRuntime the TestFlight app closes on launch (same StimPad / W4D miss)
 - `STRIP_INSTALLED_PRODUCT=NO` on archive — otherwise TestFlight **crashes on launch**
 - Analytics bind is delayed 10s on iOS (same StimPad cold-start fix)
+
+Do **not** copy `ios/AppIcon.appiconset/Contents.json` over the Godot export. That stub is 1024-only and App Store Connect rejects the IPA (missing 120 / 152 / 167). CI runs `scripts/overlay_ios_app_icons.sh` instead.
 
 ## First TestFlight run
 

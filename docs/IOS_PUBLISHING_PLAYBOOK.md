@@ -66,7 +66,8 @@ Copy this file into each new project’s `docs/` folder. Update only the app-spe
 10. **Debug with** `gh run view <id> --log-failed` — don’t re-run blind.  
 11. **If export succeeded but verify/upload failed**, do **not** rebuild — use **iOS Upload Existing IPA** with that run’s ID (artifact already uploaded).  
 12. macOS minutes cost **10×**. Budget Pro + a small spending limit if you port often.  
-13. **Firebase Analytics:** do **not** let Godot archive the IPA itself. Keep `export_project_only=true`, inject `-force_load`, then `xcodebuild` with `STRIP_INSTALLED_PRODUCT=NO`. Direct IPA export = TestFlight crash on launch (Circuit Sort / StimPad). Delay Analytics bind ~10s on iOS.
+13. **Firebase Analytics:** do **not** let Godot archive the IPA itself. Keep `export_project_only=true`, inject `-force_load`, then `xcodebuild` with `STRIP_INSTALLED_PRODUCT=NO`. Direct IPA export = TestFlight crash on launch (Circuit Sort / StimPad). Delay Analytics bind ~10s on iOS. Install **GodotApplePluginsRuntime** before GodotFirebaseiOS or the app closes on launch (missing `SwiftGodotRuntime`).  
+14. **iOS icons:** never overlay a 1024-only `AppIcon.appiconset/Contents.json`. App Store Connect still requires 120 / 152 / 167 PNGs. Use `scripts/overlay_ios_app_icons.sh`.
 
 ---
 

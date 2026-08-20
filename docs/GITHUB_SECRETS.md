@@ -64,3 +64,4 @@ gh secret list --repo OrehRuoy/Taptico
 - `*.p12`, `*.mobileprovision`
 - `GoogleService-Info.plist`
 - `addons/GodotFirebaseiOS/` (CI installs this)
+- `addons/GodotApplePluginsRuntime/` (CI installs this; required by GodotFirebaseiOS)
