@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://main_scene"]
+[gd_scene load_steps=13 format=3 uid="uid://main_scene"]
 
 [ext_resource type="Script" path="res://scripts/ui/module_carousel.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/ui/paywall_overlay.gd" id="2"]
@@ -9,8 +9,9 @@
 [ext_resource type="Texture2D" path="res://assets/modules/title_plate.png" id="7"]
 [ext_resource type="Texture2D" path="res://assets/modules/paywall_frame.png" id="8"]
 [ext_resource type="Texture2D" path="res://assets/modules/paywall_hero.png" id="9"]
-[ext_resource type="Texture2D" path="res://assets/modules/btn_unlock.png" id="10"]
-[ext_resource type="Texture2D" path="res://assets/modules/btn_shop.png" id="11"]
+[ext_resource type="Texture2D" path="res://assets/modules/icon_settings_gear.png" id="10"]
+[ext_resource type="Texture2D" path="res://assets/modules/btn_premium.png" id="11"]
+[ext_resource type="Script" path="res://scripts/ui/settings_overlay.gd" id="13"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -35,7 +36,7 @@ mouse_filter = 2
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 118.0
+offset_bottom = 72.0
 texture = ExtResource("4")
 expand_mode = 1
 stretch_mode = 6
@@ -46,8 +47,8 @@ mouse_filter = 2
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_top = 10.0
-offset_bottom = 118.0
+offset_top = 8.0
+offset_bottom = 64.0
 mouse_filter = 2
 
 [node name="LogoMark" type="TextureRect" parent="Header"]
@@ -65,32 +66,46 @@ mouse_filter = 2
 [node name="Logo" type="TextureRect" parent="Header"]
 layout_mode = 1
 offset_left = 8.0
-offset_top = 6.0
-offset_right = 200.0
-offset_bottom = 104.0
+offset_top = 8.0
+offset_right = 132.0
+offset_bottom = 48.0
 texture = ExtResource("5")
 expand_mode = 1
-stretch_mode = 4
+stretch_mode = 5
 mouse_filter = 2
 
 [node name="UnlockButton" type="TextureButton" parent="Header"]
 layout_mode = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -142.0
-offset_top = 12.0
-offset_right = -10.0
-offset_bottom = 50.0
+offset_left = -158.0
+offset_top = 10.0
+offset_right = -56.0
+offset_bottom = 46.0
 ignore_texture_size = true
-stretch_mode = 0
+stretch_mode = 5
+focus_mode = 0
 texture_normal = ExtResource("11")
+
+[node name="SettingsButton" type="TextureButton" parent="Header"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -48.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 48.0
+ignore_texture_size = true
+stretch_mode = 5
+focus_mode = 0
+texture_normal = ExtResource("10")
 
 [node name="TitleBand" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_top = 122.0
-offset_bottom = 176.0
+offset_top = 70.0
+offset_bottom = 136.0
 mouse_filter = 0
 
 [node name="TitlePlate" type="TextureRect" parent="TitleBand"]
@@ -131,7 +146,7 @@ anchor_right = 1.0
 offset_left = 16.0
 offset_top = 26.0
 offset_right = -16.0
-offset_bottom = 40.0
+offset_bottom = 42.0
 theme_override_colors/font_color = Color(0.84, 0.7, 0.44, 1)
 theme_override_font_sizes/font_size = 11
 horizontal_alignment = 1
@@ -142,28 +157,17 @@ text = "FREE"
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_left = 18.0
-offset_top = 38.0
-offset_right = -112.0
-offset_bottom = 52.0
+offset_left = 20.0
+offset_top = 42.0
+offset_right = -20.0
+offset_bottom = 64.0
 theme_override_colors/font_color = Color(0.72, 0.74, 0.77, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 12
 horizontal_alignment = 1
+vertical_alignment = 1
 autowrap_mode = 0
 mouse_filter = 2
-text = "Swipe this bar to change toys."
-
-[node name="ReachButton" type="Button" parent="TitleBand"]
-layout_mode = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -108.0
-offset_top = 26.0
-offset_right = -8.0
-offset_bottom = 50.0
-theme_override_font_sizes/font_size = 11
-text = "Two hands"
-flat = true
+text = "Drag the dial."
 
 [node name="Stage" type="Panel" parent="."]
 layout_mode = 1
@@ -171,7 +175,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 14.0
-offset_top = 204.0
+offset_top = 148.0
 offset_right = -14.0
 offset_bottom = -122.0
 mouse_filter = 1
@@ -204,7 +208,7 @@ theme_override_constants/separation = 10
 
 [node name="Paywall" type="Control" parent="."]
 visible = false
-z_index = 120
+z_index = 200
 z_as_relative = false
 layout_mode = 1
 anchors_preset = 15
@@ -214,96 +218,93 @@ mouse_filter = 0
 script = ExtResource("2")
 
 [node name="Dim" type="ColorRect" parent="Paywall"]
+z_index = 0
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.02, 0.02, 0.03, 0.82)
+color = Color(0, 0, 0, 0.16)
 
 [node name="Frame" type="TextureRect" parent="Paywall"]
-z_index = 4
+z_index = 0
+z_as_relative = true
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -180.0
-offset_top = -360.0
-offset_right = 180.0
-offset_bottom = 400.0
+offset_left = -170.0
+offset_top = -310.0
+offset_right = 170.0
+offset_bottom = 310.0
 texture = ExtResource("8")
 expand_mode = 1
 stretch_mode = 0
 mouse_filter = 2
 
 [node name="Inner" type="ColorRect" parent="Paywall"]
-z_index = 0
+visible = false
+z_index = 1
+z_as_relative = true
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -148.0
-offset_top = -318.0
-offset_right = 148.0
-offset_bottom = 358.0
-color = Color(0, 0, 0, 1)
+offset_left = -138.0
+offset_top = -270.0
+offset_right = 138.0
+offset_bottom = 270.0
+color = Color(0.10, 0.13, 0.18, 1)
 mouse_filter = 2
 
 [node name="Panel" type="PanelContainer" parent="Paywall"]
-z_index = 1
+z_index = 2
+z_as_relative = true
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -140.0
-offset_top = -292.0
-offset_right = 140.0
-offset_bottom = 348.0
+offset_left = -130.0
+offset_top = -250.0
+offset_right = 130.0
+offset_bottom = 250.0
 
 [node name="VBox" type="VBoxContainer" parent="Paywall/Panel"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 6
 alignment = 1
 
 [node name="Hero" type="TextureRect" parent="Paywall/Panel/VBox"]
-custom_minimum_size = Vector2(0, 200)
+custom_minimum_size = Vector2(0, 180)
 layout_mode = 2
 texture = ExtResource("9")
 expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Logo" type="TextureRect" parent="Paywall/Panel/VBox"]
-visible = false
-custom_minimum_size = Vector2(0, 32)
-layout_mode = 2
-texture = ExtResource("5")
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Kicker" type="Label" parent="Paywall/Panel/VBox"]
-visible = false
-layout_mode = 2
-text = "TAPTICO PREMIUM"
-horizontal_alignment = 1
-
 [node name="Headline" type="Label" parent="Paywall/Panel/VBox"]
 visible = false
 layout_mode = 2
 text = "Taptico Premium"
 horizontal_alignment = 1
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.96, 0.86, 0.58, 1)
+theme_override_font_sizes/font_size = 20
 
 [node name="Features" type="Label" parent="Paywall/Panel/VBox"]
 visible = false
 layout_mode = 2
-text = ""
+text = "Unlock Bearings, Pad, and Keys.
+Desk Stand stays on for life."
 horizontal_alignment = 1
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.82, 0.84, 0.86, 1)
+theme_override_font_sizes/font_size = 13
 
 [node name="MessageLabel" type="Label" parent="Paywall/Panel/VBox"]
 visible = false
@@ -313,25 +314,24 @@ horizontal_alignment = 1
 
 [node name="StatusLabel" type="Label" parent="Paywall/Panel/VBox"]
 layout_mode = 2
-autowrap_mode = 2
+autowrap_mode = 3
 theme_override_colors/font_color = Color(0.78, 0.7, 0.5, 1)
 theme_override_font_sizes/font_size = 12
 horizontal_alignment = 1
-
-[node name="BuyButton" type="TextureButton" parent="Paywall/Panel/VBox"]
-custom_minimum_size = Vector2(200, 40)
-layout_mode = 2
-size_flags_horizontal = 4
-ignore_texture_size = true
-stretch_mode = 0
-texture_normal = ExtResource("10")
 
 [node name="PriceLabel" type="Label" parent="Paywall/Panel/VBox"]
 layout_mode = 2
 text = "$4.99"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.90, 0.82, 0.58, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 20
+
+[node name="BuyButton" type="Button" parent="Paywall/Panel/VBox"]
+custom_minimum_size = Vector2(216, 108)
+layout_mode = 2
+size_flags_horizontal = 4
+flat = true
+text = ""
 
 [node name="Actions" type="VBoxContainer" parent="Paywall/Panel/VBox"]
 layout_mode = 2
@@ -353,7 +353,20 @@ size_flags_horizontal = 4
 text = "Reset"
 
 [node name="CloseButton" type="Button" parent="Paywall/Panel/VBox/Actions"]
+visible = false
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Not Now"
+
+[node name="Settings" type="Control" parent="."]
+visible = false
+z_index = 210
+z_as_relative = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 0
+script = ExtResource("13")
+

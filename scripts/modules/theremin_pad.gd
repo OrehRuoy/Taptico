@@ -53,6 +53,7 @@ func _ready() -> void:
 	_labels["higher"] = _make_axis_label("HIGHER")
 	_setup_noise()
 	resized.connect(_layout)
+	AppSettings.changed.connect(_on_settings_changed)
 	_layout()
 
 
@@ -118,15 +119,28 @@ func _setup_noise() -> void:
 
 
 func on_activate() -> void:
-	if not noise_player.playing:
-		noise_player.play()
-		_playback = noise_player.get_stream_playback()
+	_sync_noise()
 
 
 func on_deactivate() -> void:
 	noise_player.stop()
 	_playback = null
 	AudioFeel.reset_modulation()
+
+
+func _on_settings_changed() -> void:
+	if _active:
+		_sync_noise()
+
+
+func _sync_noise() -> void:
+	if AppSettings.sound_on:
+		if not noise_player.playing:
+			noise_player.play()
+			_playback = noise_player.get_stream_playback()
+	else:
+		noise_player.stop()
+		_playback = null
 
 
 func _process(delta: float) -> void:

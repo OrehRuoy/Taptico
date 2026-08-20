@@ -98,4 +98,4 @@ func _check_detent() -> void:
 	if detent != _last_detent:
 		_last_detent = detent
 		Haptics.selection()
-		AudioFeel.set_pitch_from_velocity(180.0)
+		AudioFeel.play_tick(randf_range(0.96, 1.08))

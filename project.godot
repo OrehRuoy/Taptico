@@ -15,20 +15,18 @@ config/description="Haptic Fidget & Focus Tool"
 config/version="1.0.0"
 run/main_scene="res://scenes/main/Main.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
-config/icon="res://assets/icons/icon_1024.png"
 boot_splash/bg_color=Color(0.0627451, 0.0705882, 0.0941176, 1)
 boot_splash/image="res://assets/icons/splash.png"
-boot_splash/fullsize=true
-boot_splash/use_filter=true
+config/icon="res://assets/icons/icon_1024.png"
 
 [audio]
 
 buses/default_bus_layout="res://audio/default_bus_layout.tres"
 general/ios/session_category=3
-general/ios/mix_with_others=false
 
 [autoload]
 
+AppSettings="*res://scripts/services/app_settings.gd"
 Haptics="*res://addons/haptics/haptics.gd"
 IAPManager="*res://scripts/services/iap_manager.gd"
 DeviceService="*res://scripts/services/device_service.gd"
@@ -37,10 +35,6 @@ EntitlementStore="*res://scripts/services/entitlement_store.gd"
 ReachSettings="*res://scripts/services/reach_settings.gd"
 ModuleRegistry="*res://scripts/services/module_registry.gd"
 AnalyticsService="*res://scripts/autoload/analytics_service.gd"
-
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/GodotFirebaseiOS/plugin.cfg")
 
 [display]
 
@@ -51,10 +45,12 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=6
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/GodotFirebaseiOS/plugin.cfg")
+
 [input_devices]
 
-pointing/emulate_touch_from_mouse=false
-pointing/emulate_mouse_from_touch=true
 sensors/enable_accelerometer=true
 sensors/enable_gravity=true
 sensors/enable_gyroscope=true
@@ -62,7 +58,6 @@ sensors/enable_gyroscope=true
 [physics]
 
 2d/default_gravity=0.0
-2d/default_gravity_vector=Vector2(0, 1)
 
 [rendering]
 

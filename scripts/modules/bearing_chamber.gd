@@ -17,6 +17,7 @@ var _rim: StaticBody2D
 var _wall_cols: Array[CollisionShape2D] = []
 var _balls: Array[RigidBody2D] = []
 var _inner_radius: float = 118.0
+var _last_clack_ms: int = 0
 
 
 func _ready() -> void:
@@ -120,14 +121,21 @@ func on_activate() -> void:
 
 
 func on_tilt(accel: Vector3, _gyro: Vector3) -> void:
-	var force := Vector2(accel.x, -accel.y) * 1400.0
+	var shake := AppSettings.shake_strength
+	var force := Vector2(accel.x, -accel.y) * (1400.0 * shake)
 	if accel.length() < 0.15:
 		var local := get_local_mouse_position() - chamber.position
-		var mouse_force := local.normalized() * minf(local.length() / 90.0, 1.0) * 1400.0
-		force = Vector2(0, 720) + mouse_force
+		var mouse_force := local.normalized() * minf(local.length() / 90.0, 1.0) * (1400.0 * maxf(shake, 0.35))
+		force = Vector2(0, 720 * maxf(shake, 0.2)) + mouse_force
 	for ball in _balls:
 		ball.apply_central_force(force * ball.mass)
 
 
 func _on_ball_collision(_body: Node) -> void:
+	var now := Time.get_ticks_msec()
+	if now - _last_clack_ms < 45:
+		return
+	_last_clack_ms = now
+	var gain := lerpf(0.25, 0.7, AppSettings.shake_strength)
 	Haptics.impact(randf_range(0.18, 0.85))
+	AudioFeel.play_clack(gain)

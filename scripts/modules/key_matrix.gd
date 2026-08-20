@@ -29,16 +29,35 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var chroma := ShaderMaterial.new()
 	chroma.shader = CHROMA
+	var track := PanelContainer.new()
+	track.name = "FeelRow"
+	track.mouse_filter = Control.MOUSE_FILTER_STOP
+	var track_box := StyleBoxFlat.new()
+	track_box.bg_color = Color(0.10, 0.13, 0.18, 0.96)
+	track_box.set_corner_radius_all(22)
+	track_box.border_width_left = 1
+	track_box.border_width_top = 1
+	track_box.border_width_right = 1
+	track_box.border_width_bottom = 1
+	track_box.border_color = Color(0.84, 0.70, 0.44, 0.70)
+	track_box.content_margin_left = 4
+	track_box.content_margin_right = 4
+	track_box.content_margin_top = 4
+	track_box.content_margin_bottom = 4
+	track.add_theme_stylebox_override("panel", track_box)
 	var row := HBoxContainer.new()
-	row.name = "FeelRow"
+	row.name = "Segments"
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 12)
-	row.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(row)
+	row.add_theme_constant_override("separation", 0)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	track.add_child(row)
+	add_child(track)
 	for i in FEEL_NAMES.size():
 		var btn := Button.new()
 		btn.text = FEEL_NAMES[i]
-		btn.custom_minimum_size = Vector2(108, 44)
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.custom_minimum_size = Vector2(0, 36)
+		btn.focus_mode = Control.FOCUS_NONE
 		btn.pressed.connect(_set_feel.bind(i))
 		row.add_child(btn)
 		_feel_buttons.append(btn)
@@ -72,30 +91,33 @@ func _set_feel(index: int) -> void:
 	_feel = index
 	_style_feel_buttons()
 	Haptics.selection()
+	AudioFeel.play_tick()
 
 
 func _style_feel_buttons() -> void:
+	var last := _feel_buttons.size() - 1
 	for i in _feel_buttons.size():
 		var btn := _feel_buttons[i]
 		var box := StyleBoxFlat.new()
-		box.set_corner_radius_all(18)
-		box.content_margin_left = 14
-		box.content_margin_right = 14
-		box.content_margin_top = 10
-		box.content_margin_bottom = 10
-		box.border_width_left = 1
-		box.border_width_top = 1
-		box.border_width_right = 1
-		box.border_width_bottom = 1
+		var rad_l := 18 if i == 0 else 4
+		var rad_r := 18 if i == last else 4
+		box.corner_radius_top_left = rad_l
+		box.corner_radius_bottom_left = rad_l
+		box.corner_radius_top_right = rad_r
+		box.corner_radius_bottom_right = rad_r
+		box.content_margin_left = 8
+		box.content_margin_right = 8
+		box.content_margin_top = 8
+		box.content_margin_bottom = 8
 		if i == _feel:
 			box.bg_color = Color(0.84, 0.70, 0.44)
 			box.border_color = Color(0.96, 0.86, 0.58)
 			btn.add_theme_color_override("font_color", Color(0.12, 0.10, 0.08))
 		else:
-			box.bg_color = Color(0.10, 0.11, 0.13, 0.96)
-			box.border_color = Color(0.84, 0.70, 0.44, 0.45)
+			box.bg_color = Color(0.0, 0.0, 0.0, 0)
+			box.border_color = Color(0, 0, 0, 0)
 			btn.add_theme_color_override("font_color", Color(0.86, 0.80, 0.68))
-		btn.add_theme_font_size_override("font_size", 15)
+		btn.add_theme_font_size_override("font_size", 14)
 		btn.add_theme_stylebox_override("normal", box)
 		btn.add_theme_stylebox_override("hover", box)
 		btn.add_theme_stylebox_override("pressed", box)
@@ -104,10 +126,18 @@ func _style_feel_buttons() -> void:
 func _layout() -> void:
 	if size.x < 8.0:
 		return
-	var first := _key_rect(0, 0)
-	var row := get_node("FeelRow") as HBoxContainer
-	row.position = Vector2(8, first.position.y - 78)
-	row.size = Vector2(size.x - 16, 48)
+	var last := _key_rect(3, 1)
+	var row := get_node("FeelRow") as Control
+	var row_h := 48.0
+	var y := last.position.y + last.size.y + 16.0
+	var max_y := size.y - row_h - 8.0
+	if y > max_y:
+		y = max_y
+	var bar_w := minf(size.x - 28.0, 340.0)
+	row.position = Vector2((size.x - bar_w) * 0.5, y)
+	row.size = Vector2(bar_w, row_h)
+	row.z_index = 8
+	row.move_to_front()
 	for i in _caps.size():
 		_place_cap(i)
 
@@ -165,10 +195,14 @@ func _release() -> void:
 
 
 func _metrics() -> Dictionary:
-	var key_s := Vector2(72, 72)
-	var gap := Vector2(10, 12)
-	var total := Vector2(3.0 * key_s.x + 2.0 * gap.x, 4.0 * key_s.y + 3.0 * gap.y + 58.0)
-	var origin := ReachSettings.cluster_origin(size, total) + Vector2(0, 8)
+	var feel_h := 62.0
+	var side := minf(size.x, maxf(size.y - feel_h, 80.0))
+	var key_len := clampf(side * 0.18, 56.0, 96.0)
+	var key_s := Vector2(key_len, key_len)
+	var gap := Vector2(key_len * 0.12, key_len * 0.14)
+	var total := Vector2(3.0 * key_s.x + 2.0 * gap.x, 4.0 * key_s.y + 3.0 * gap.y)
+	var usable := Vector2(size.x, maxf(size.y - feel_h, total.y))
+	var origin := ReachSettings.cluster_origin(usable, total) + Vector2(0, 4)
 	return {"key": key_s, "gap": gap, "origin": origin}
 
 
@@ -195,14 +229,18 @@ func _fire_down() -> void:
 	match FEEL_STYLES[_feel]:
 		SwitchStyle.LINEAR:
 			Haptics.light()
+			AudioFeel.play_key_soft()
 		SwitchStyle.TACTILE:
 			Haptics.medium()
+			AudioFeel.play_thud()
 		SwitchStyle.CLICKY:
 			Haptics.rigid()
+			AudioFeel.play_key_click()
 
 
 func _fire_up() -> void:
 	if FEEL_STYLES[_feel] == SwitchStyle.CLICKY:
 		Haptics.double_pulse()
+		AudioFeel.play_key_click()
 	else:
 		Haptics.selection()

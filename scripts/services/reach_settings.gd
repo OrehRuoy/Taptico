@@ -18,7 +18,14 @@ func _ready() -> void:
 
 
 func cycle() -> void:
-	mode = (mode + 1) % 3
+	set_mode((mode + 1) % 3)
+
+
+func set_mode(next: int) -> void:
+	next = clampi(next, 0, 2)
+	if mode == next:
+		return
+	mode = next
 	var cfg := ConfigFile.new()
 	cfg.load(SAVE_PATH)
 	cfg.set_value("reach", "mode", mode)
