@@ -24,9 +24,17 @@ Thumbs.db
 *.pem
 .env
 .env.*
+GoogleService-Info.plist
+ios/GoogleService-Info.plist
+addons/GodotFirebaseiOS/GoogleService-Info.plist
 
-# One-off image processors
-tools/
+# Firebase iOS plugin is huge; CI installs via scripts/setup_ios_firebase.sh
+addons/GodotFirebaseiOS/
+
+# One-off image processors (keep committed CI helpers under tools/ios)
+tools/*
+!tools/ios/
+!tools/ios/**
 
 # IDE
 .vscode/

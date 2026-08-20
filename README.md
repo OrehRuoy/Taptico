@@ -14,7 +14,7 @@
 Hosted file: [`privacy.html`](privacy.html)  
 Intended public URL: `https://orehruoy.github.io/Taptico/privacy.html`
 
-In the GitHub repo: **Settings → Pages → Deploy from a branch → `main` / root**. Contact: hallanhype@gmail.com
+In the GitHub repo: **Settings → Pages → Deploy from a branch → `taptico-app` / root** (this repo has no `main` branch yet). Contact: hallanhype@gmail.com
 
 ## Quick Start (Editor)
 

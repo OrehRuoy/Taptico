@@ -172,12 +172,14 @@ func _on_busy_changed(is_busy: bool) -> void:
 func _on_buy() -> void:
 	if IAPManager.is_busy():
 		return
+	AnalyticsService.log_event("paywall_buy_tap", {"price": IAPManager.get_price_display()})
 	IAPManager.purchase_lifetime()
 
 
 func _on_restore() -> void:
 	if IAPManager.is_busy():
 		return
+	AnalyticsService.log_event("paywall_restore_tap", {})
 	IAPManager.restore_purchases()
 
 
@@ -198,6 +200,7 @@ func _on_purchase_started() -> void:
 func _on_success() -> void:
 	_set_busy(false)
 	status_label.text = "Thank you. Every module is unlocked."
+	AnalyticsService.log_event("purchase", {"product_id": IAPManager.PRODUCT_LIFETIME})
 	await get_tree().create_timer(0.9).timeout
 	hide()
 

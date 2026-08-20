@@ -192,6 +192,12 @@ func _show_module(index: int) -> void:
 	subtitle_label.text = "FREE" if not mod["premium"] else "PREMIUM"
 	hint_label.text = str(mod.get("hint", ""))
 	_update_nav_styles()
+	AnalyticsService.log_screen(str(mod.get("id", mod["name"])))
+	AnalyticsService.log_event("module_view", {
+		"module_id": str(mod.get("id", "")),
+		"module_name": str(mod.get("name", "")),
+		"premium": 1 if bool(mod.get("premium", false)) else 0,
+	})
 
 
 func _update_nav_styles() -> void:
@@ -206,6 +212,8 @@ func _present_paywall(module_name: String = "") -> void:
 	paywall.z_as_relative = false
 	paywall.move_to_front()
 	paywall.show_paywall(module_name)
+	AnalyticsService.log_screen("paywall")
+	AnalyticsService.log_event("paywall_shown", {"module_name": module_name})
 
 
 func _on_unlock_pressed() -> void:
@@ -216,6 +224,7 @@ func _on_reach_pressed() -> void:
 	ReachSettings.cycle()
 	if reach_button:
 		reach_button.text = ReachSettings.label()
+	AnalyticsService.log_event("reach_mode", {"label": ReachSettings.label()})
 
 
 func _on_reset_pressed() -> void:

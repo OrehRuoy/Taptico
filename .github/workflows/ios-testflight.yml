@@ -1,0 +1,254 @@
+name: iOS TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_macos_export:
+        description: "Run macOS export + TestFlight upload"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate GitHub secrets
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          APPLE_ID_USERNAME: ${{ secrets.APPLE_ID_USERNAME }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [ -z "${APPLE_CERTIFICATE_BASE64:-}" ] && missing+=("APPLE_CERTIFICATE_BASE64")
+          [ -z "${APPLE_CERTIFICATE_PASSWORD:-}" ] && missing+=("APPLE_CERTIFICATE_PASSWORD")
+          [ -z "${APPLE_PROVISIONING_PROFILE_BASE64:-}" ] && missing+=("APPLE_PROVISIONING_PROFILE_BASE64")
+          [ -z "${APPLE_ID_USERNAME:-}" ] && missing+=("APPLE_ID_USERNAME")
+          [ -z "${APPLE_ID_PASSWORD:-}" ] && missing+=("APPLE_ID_PASSWORD")
+          [ -z "${GOOGLE_SERVICE_INFO_PLIST_BASE64:-}" ] && missing+=("GOOGLE_SERVICE_INFO_PLIST_BASE64")
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Missing secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Validate export preset and plugins
+        run: |
+          set -euo pipefail
+          grep -q 'name="iOS (TestFlight IPA)"' export_presets.cfg
+          grep -q 'application/bundle_identifier="com.orehruoy.taptico"' export_presets.cfg
+          grep -q 'plugins/Haptics=true' export_presets.cfg
+          grep -q 'plugins/StoreKit=true' export_presets.cfg
+          grep -q 'application/app_store_team_id="9WRNQYQZTB"' export_presets.cfg
+          UUID=$(grep 'application/provisioning_profile_uuid_release=' export_presets.cfg | sed -n 's/.*application\/provisioning_profile_uuid_release="\([^"]*\)".*/\1/p' | tail -1)
+          if [ -z "$UUID" ] || [ "$UUID" = "PASTE_PROFILE_UUID_HERE" ]; then
+            echo "::error::Missing release provisioning profile UUID in export_presets.cfg"
+            exit 1
+          fi
+          if ! echo "$UUID" | grep -Eq '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'; then
+            echo "::error::Provisioning UUID looks invalid: $UUID"
+            exit 1
+          fi
+          echo "Release profile UUID: $UUID"
+          test -f assets/icons/icon_1024.png
+          test -f ios/plugins/haptics/Haptics.gdip
+          test -f ios/plugins/storekit/StoreKit.gdip
+          test -f native/build_plugins.sh
+          test -f scripts/setup_ios_firebase.sh
+          test -f scripts/verify_ios_ipa_plugins.sh
+          test -f tools/ios/inject_firebase_force_load.sh
+          test -f tools/ios/GodotFirebaseiOS_export_plugin.gd
+          test -f tools/ios/patch_xcode_signing.py
+          grep -q 'res://addons/GodotFirebaseiOS/plugin.cfg' project.godot
+          grep -q 'AnalyticsService=' project.godot
+          if grep -nE '^\s*#' ios/plugins/**/*.gdip ios/plugins/*.gdip 2>/dev/null; then
+            echo "::error::Remove # comments from .gdip files (use ; )"
+            exit 1
+          fi
+          if grep -q 'plugins/exported=' export_presets.cfg; then
+            echo "::error::Do not use plugins/exported= — use plugins/Haptics=true and plugins/StoreKit=true"
+            exit 1
+          fi
+          echo "Preflight OK: UUID + native plugins + Firebase editor plugin entry present"
+
+  build-ios:
+    needs: preflight
+    if: ${{ inputs.run_macos_export }}
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      GODOT_VERSION: "4.6.3"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select latest Xcode
+        run: |
+          LATEST=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$LATEST"
+          xcodebuild -version
+
+      - name: Setup Godot
+        run: |
+          curl -fsSL "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_macos.universal.zip" -o "$RUNNER_TEMP/godot.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          echo "GODOT_BIN=$RUNNER_TEMP/Godot.app/Contents/MacOS/Godot" >> "$GITHUB_ENV"
+          curl -fsSL "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" -o "$RUNNER_TEMP/templates.tpz"
+          unzip -q "$RUNNER_TEMP/templates.tpz" -d "$RUNNER_TEMP"
+          TDIR="$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$TDIR"
+          cp "$RUNNER_TEMP/templates/ios.zip" "$TDIR/"
+
+      - name: Build native iOS plugins
+        run: |
+          chmod +x native/build_plugins.sh
+          native/build_plugins.sh
+          test -d ios/plugins/haptics/Haptics.release.xcframework
+          test -d ios/plugins/storekit/StoreKit.release.xcframework
+
+      - name: Import signing certificate
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > certificate.p12
+          KC_PASS=$(uuidgen)
+          security create-keychain -p "$KC_PASS" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KC_PASS" build.keychain
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KC_PASS" build.keychain
+          rm certificate.p12
+
+      - name: Install provisioning profile
+        env:
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          UUID=$(grep 'application/provisioning_profile_uuid_release=' export_presets.cfg | sed -n 's/.*application\/provisioning_profile_uuid_release="\([^"]*\)".*/\1/p' | tail -1)
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$HOME/Library/MobileDevice/Provisioning Profiles/${UUID}.mobileprovision"
+
+      - name: Install GodotFirebaseiOS (Analytics)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: |
+          chmod +x scripts/setup_ios_firebase.sh
+          ./scripts/setup_ios_firebase.sh
+          test -f addons/GodotFirebaseiOS/GoogleService-Info.plist
+          grep -q '^FirebaseIOS=' project.godot
+
+      - name: Set build number
+        run: sed -i '' "s|application/version=\"[^\"]*\"|application/version=\"${GITHUB_RUN_NUMBER}\"|" export_presets.cfg
+
+      - name: Export iOS Xcode project
+        run: |
+          mkdir -p build
+          # Direct .ipa export archives BEFORE GodotFirebaseiOS can inject -force_load,
+          # which produces a TestFlight binary that crashes on launch (Circuit Sort / StimPad).
+          sed -i '' 's|application/export_project_only=false|application/export_project_only=true|' export_presets.cfg
+          grep 'application/export_project_only=' export_presets.cfg
+          "$GODOT_BIN" --headless --path . --import || true
+          "$GODOT_BIN" --headless --path . --export-release "iOS (TestFlight IPA)" "build/Taptico.ipa"
+          if [[ ! -d build/Taptico/frameworks ]]; then
+            echo "WARNING: export plugin did not copy frameworks; copying from addon"
+            mkdir -p build/Taptico
+            cp -R addons/GodotFirebaseiOS/frameworks build/Taptico/frameworks
+          fi
+          test -d "build/Taptico/frameworks"
+          test -f "build/Taptico.xcodeproj/project.pbxproj"
+          chmod +x tools/ios/inject_firebase_force_load.sh tools/ios/patch_xcode_signing.py
+          tools/ios/inject_firebase_force_load.sh Taptico build
+          grep -q 'force_load' build/Taptico.xcodeproj/project.pbxproj
+          if grep -qE -- '-Wl-U_|-Wl -weak-l' build/Taptico.xcodeproj/project.pbxproj; then
+            echo "ERROR: corrupted -Wl linker flags in project.pbxproj" && exit 1
+          fi
+          echo "Firebase force_load injection OK"
+          ls -la build/
+
+      - name: Overlay launch screen, privacy manifest, and App Icon
+        run: |
+          set -euo pipefail
+          EXPORT_DIR="build"
+          cp -f ios/PrivacyInfo.xcprivacy "$EXPORT_DIR/Taptico/PrivacyInfo.xcprivacy" || true
+          find "$EXPORT_DIR" -name 'Launch Screen.storyboard' -o -name 'LaunchScreen.storyboard' | while read -r sb; do
+            cp -f ios/LaunchScreen.storyboard "$sb"
+          done
+          ICONSET=$(find "$EXPORT_DIR" -type d -name 'AppIcon.appiconset' | head -1)
+          if [ -n "$ICONSET" ] && [ -f ios/AppIcon.appiconset/Icon-1024.png ]; then
+            cp -f ios/AppIcon.appiconset/Icon-1024.png "$ICONSET/Icon-1024.png"
+            cp -f ios/AppIcon.appiconset/Contents.json "$ICONSET/Contents.json"
+          fi
+
+      - name: Archive and export IPA
+        run: |
+          UUID=$(grep 'application/provisioning_profile_uuid_release=' export_presets.cfg | sed -n 's/.*application\/provisioning_profile_uuid_release="\([^"]*\)".*/\1/p' | tail -1)
+          PROFILE="$HOME/Library/MobileDevice/Provisioning Profiles/${UUID}.mobileprovision"
+          PROFILE_NAME=$(security cms -D -i "$PROFILE" 2>/dev/null | plutil -extract Name raw -)
+          echo "Provisioning profile name: $PROFILE_NAME"
+          printf '%s\n' '{}' | plutil -convert xml1 -o build/ExportOptions.plist -
+          /usr/libexec/PlistBuddy -c "Add :method string app-store" build/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :teamID string 9WRNQYQZTB" build/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" build/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" build/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.orehruoy.taptico string ${PROFILE_NAME}" build/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" build/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :compileBitcode bool false" build/ExportOptions.plist
+          plutil -lint build/ExportOptions.plist
+          python3 tools/ios/patch_xcode_signing.py build "$PROFILE_NAME"
+          xcodebuild \
+            -project build/Taptico.xcodeproj \
+            -scheme Taptico \
+            -sdk iphoneos \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/Taptico.xcarchive \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            DEVELOPMENT_TEAM=9WRNQYQZTB \
+            STRIP_INSTALLED_PRODUCT=NO \
+            COPY_PHASE_STRIP=NO \
+            STRIP_STYLE=non-global \
+            archive
+          APP_BIN="build/Taptico.xcarchive/Products/Applications/Taptico.app/Taptico"
+          test -f "$APP_BIN"
+          EXPORTED=$(nm -gU "$APP_BIN" 2>/dev/null | grep -c 'FirebaseAuth\|FIRApp\|FirebaseCore' || true)
+          echo "Firebase symbols exported by app binary: $EXPORTED"
+          if [[ "$EXPORTED" -eq 0 ]]; then
+            echo "ERROR: app exports no Firebase symbols; GodotFirebaseiOS.framework will crash on launch"
+            exit 1
+          fi
+          xcodebuild -exportArchive \
+            -archivePath build/Taptico.xcarchive \
+            -exportPath build \
+            -exportOptionsPlist build/ExportOptions.plist
+          ls -la build/*.ipa
+          test -f build/Taptico.ipa
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taptico-ipa
+          path: build/*.ipa
+          retention-days: 7
+
+      - name: Verify IPA
+        run: |
+          chmod +x scripts/verify_ios_ipa_plugins.sh
+          ./scripts/verify_ios_ipa_plugins.sh build/Taptico.ipa
+
+      - name: Upload to TestFlight
+        env:
+          APPLE_ID_USERNAME: ${{ secrets.APPLE_ID_USERNAME }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+        run: |
+          xcrun altool --upload-app -t ios -f build/Taptico.ipa \
+            -u "$APPLE_ID_USERNAME" -p "$APPLE_ID_PASSWORD" --verbose

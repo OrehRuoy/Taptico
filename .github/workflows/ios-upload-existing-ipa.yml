@@ -1,0 +1,58 @@
+name: iOS Upload Existing IPA
+
+# Re-verify + TestFlight-upload an IPA already built by a prior Actions run.
+# Avoids another full Godot/macOS export when only verify or upload failed.
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "GitHub Actions run ID that uploaded the Taptico-ipa artifact"
+        required: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  verify-and-upload:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download IPA artifact from source run
+        uses: actions/download-artifact@v4
+        with:
+          name: Taptico-ipa
+          path: build
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Locate IPA
+        run: |
+          set -euo pipefail
+          ls -la build/
+          if [ ! -f build/Taptico.ipa ]; then
+            IPA="$(find build -name '*.ipa' -print -quit)"
+            if [ -z "$IPA" ]; then
+              echo "::error::No .ipa found in Taptico-ipa artifact from run ${{ inputs.source_run_id }}"
+              exit 1
+            fi
+            cp "$IPA" build/Taptico.ipa
+          fi
+          ls -la build/Taptico.ipa
+
+      - name: Verify IPA
+        run: |
+          chmod +x scripts/verify_ios_ipa_plugins.sh
+          ./scripts/verify_ios_ipa_plugins.sh build/Taptico.ipa
+
+      - name: Upload to TestFlight
+        env:
+          APPLE_ID_USERNAME: ${{ secrets.APPLE_ID_USERNAME }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+        run: |
+          set -euo pipefail
+          xcrun altool --upload-app -t ios -f build/Taptico.ipa \
+            -u "$APPLE_ID_USERNAME" -p "$APPLE_ID_PASSWORD" --verbose
