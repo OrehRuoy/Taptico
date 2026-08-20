@@ -64,6 +64,9 @@ jobs:
           test -f ios/plugins/haptics/Haptics.gdip
           test -f ios/plugins/storekit/StoreKit.gdip
           test -f native/build_plugins.sh
+          test -f native/godot-haptics/src/GodotPluginEntry.cpp
+          test -f native/godot-storekit/src/GodotPluginEntry.cpp
+          test -f scripts/generate_godot_gen_headers.py
           test -f scripts/setup_ios_firebase.sh
           test -f scripts/verify_ios_ipa_plugins.sh
           test -f tools/ios/inject_firebase_force_load.sh

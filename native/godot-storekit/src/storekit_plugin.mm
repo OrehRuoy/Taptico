@@ -2,19 +2,16 @@
 #import <StoreKit/StoreKit.h>
 #import <objc/runtime.h>
 
-void register_godot_singleton(const char *name, void *instance) __attribute__((weak));
-void unregister_godot_singleton(const char *name) __attribute__((weak));
+void emit_purchase_updated(const char *product_id);
+void emit_purchase_failed(const char *message);
+void emit_entitlements_updated(bool unlocked);
+void emit_products_loaded(const char *price);
+void emit_products_failed(const char *message);
 
 static NSString *g_product_id = @"com.orehruoy.taptico.lifetime";
 static NSString *g_price = @"";
 static BOOL g_price_ready = NO;
 static BOOL g_lifetime = NO;
-
-void emit_purchase_updated(const char *product_id) __attribute__((weak));
-void emit_purchase_failed(const char *message) __attribute__((weak));
-void emit_entitlements_updated(BOOL unlocked) __attribute__((weak));
-void emit_products_loaded(const char *price) __attribute__((weak));
-void emit_products_failed(const char *message) __attribute__((weak));
 
 static NSString *TapticoStoreErrorMessage(NSError *error) {
     if (error == nil) {
@@ -211,16 +208,42 @@ static NSString *TapticoStoreErrorMessage(NSError *error) {
 
 static TapticoStoreKit *g_storekit = nil;
 
-void storekit_init() {
-    g_storekit = [[TapticoStoreKit alloc] init];
-    if (register_godot_singleton) {
-        register_godot_singleton("StoreKit", (__bridge void *)g_storekit);
+extern "C" {
+
+void storekit_init_impl() {
+    if (g_storekit == nil) {
+        g_storekit = [[TapticoStoreKit alloc] init];
     }
 }
 
-void storekit_deinit() {
-    if (unregister_godot_singleton) {
-        unregister_godot_singleton("StoreKit");
-    }
+void storekit_deinit_impl() {
     g_storekit = nil;
+}
+
+void storekit_initialize(const char *product_id) {
+    NSString *sku = product_id ? [NSString stringWithUTF8String:product_id] : @"";
+    [g_storekit initialize:sku];
+}
+
+void storekit_purchase(const char *product_id) {
+    NSString *sku = product_id ? [NSString stringWithUTF8String:product_id] : @"";
+    [g_storekit purchase:sku];
+}
+
+void storekit_restore() {
+    [g_storekit restore];
+}
+
+const char *storekit_get_price() {
+    return [(g_price ?: @"") UTF8String];
+}
+
+bool storekit_is_price_ready() {
+    return [g_storekit is_price_ready];
+}
+
+bool storekit_has_lifetime() {
+    return [g_storekit has_lifetime];
+}
+
 }

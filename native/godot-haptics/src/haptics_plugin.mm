@@ -202,19 +202,28 @@
 
 static TapticoHaptics *g_haptics = nil;
 
-void register_godot_singleton(const char *name, void *instance) __attribute__((weak));
-void unregister_godot_singleton(const char *name) __attribute__((weak));
+extern "C" {
 
-void haptics_init() {
-    g_haptics = [[TapticoHaptics alloc] init];
-    if (register_godot_singleton) {
-        register_godot_singleton("Haptics", (__bridge void *)g_haptics);
+void haptics_init_impl() {
+    if (g_haptics == nil) {
+        g_haptics = [[TapticoHaptics alloc] init];
     }
 }
 
-void haptics_deinit() {
-    if (unregister_godot_singleton) {
-        unregister_godot_singleton("Haptics");
-    }
+void haptics_deinit_impl() {
     g_haptics = nil;
+}
+
+void haptics_light() { [g_haptics light]; }
+void haptics_medium() { [g_haptics medium]; }
+void haptics_heavy() { [g_haptics heavy]; }
+void haptics_soft() { [g_haptics soft]; }
+void haptics_rigid() { [g_haptics rigid]; }
+void haptics_selection() { [g_haptics selection]; }
+void haptics_impact(float intensity) { [g_haptics impact:intensity]; }
+void haptics_double_pulse() { [g_haptics doublePulse]; }
+bool haptics_is_supported() { return [g_haptics isSupported]; }
+bool haptics_is_charging() { return [g_haptics isCharging]; }
+void haptics_configure_playback() { [g_haptics configurePlaybackAudioSession]; }
+
 }
