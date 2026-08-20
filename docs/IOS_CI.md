@@ -42,6 +42,8 @@ Debug: `gh run view <id> --log-failed`
 
 Known first-build miss: `native/build_plugins.sh` must compile simulator **arm64** and **x86_64** as separate objects (W4D pattern). One `clang -c` with both `-arch` flags fails on Xcode 16 with “binaries with multiple platforms are not supported”.
 
+`.gdip` `files=` must not use `../../PrivacyInfo.xcprivacy` — Godot resolves that under `build/Taptico/...` and export fails (code 12). Other apps leave `files=[]` and overlay `ios/PrivacyInfo.xcprivacy` after export.
+
 ## IAP review notes (App Review, not TestFlight)
 
 TestFlight install does **not** need IAP review notes or a paywall screenshot.

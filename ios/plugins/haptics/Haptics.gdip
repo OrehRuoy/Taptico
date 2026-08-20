@@ -9,7 +9,7 @@ linked=[]
 embedded=[]
 system=["Foundation.framework", "UIKit.framework", "CoreHaptics.framework", "AVFoundation.framework"]
 capabilities=[]
-files=["../../PrivacyInfo.xcprivacy"]
+files=[]
 linker_flags=["-ObjC"]
 
 [plist]
