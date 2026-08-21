@@ -26,12 +26,12 @@ func _ready() -> void:
 
 func _build_art() -> void:
 	_dial = Sprite2D.new()
-	_dial.texture = DIAL_TEX
+	Chroma.apply(_dial, DIAL_TEX)
 	_dial.z_index = 1
 	_dial.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	add_child(_dial)
 	_bezel = Sprite2D.new()
-	_bezel.texture = BEZEL_TEX
+	Chroma.apply(_bezel, BEZEL_TEX)
 	_bezel.z_index = 2
 	_bezel.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	add_child(_bezel)

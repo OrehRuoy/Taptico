@@ -26,6 +26,8 @@ general/ios/session_category=3
 
 [autoload]
 
+Chroma="*res://scripts/core/chroma.gd"
+MagentaKey="*res://scripts/core/magenta_key.gd"
 AppSettings="*res://scripts/services/app_settings.gd"
 Haptics="*res://addons/haptics/haptics.gd"
 IAPManager="*res://scripts/services/iap_manager.gd"
@@ -43,7 +45,7 @@ window/size/viewport_height=844
 window/energy_saving/keep_screen_on=false
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-window/handheld/orientation=6
+window/handheld/orientation=5
 
 [editor_plugins]
 

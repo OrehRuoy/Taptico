@@ -2,7 +2,6 @@ extends FidgetModule
 ## Ambient Pad — circular touch plate. X = tone, Y = brightness.
 
 const PLATE_TEX := preload("res://assets/modules/ambient_pad.png")
-const CHROMA := preload("res://shaders/chroma_key.gdshader")
 
 @onready var pad: TextureRect = $Pad
 @onready var glow: ColorRect = $Glow
@@ -34,10 +33,7 @@ func _ready() -> void:
 		glow.hide()
 		glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_plate = Sprite2D.new()
-	_plate.texture = PLATE_TEX
-	var mat := ShaderMaterial.new()
-	mat.shader = CHROMA
-	_plate.material = mat
+	Chroma.apply(_plate, PLATE_TEX)
 	_plate.z_index = 0
 	_plate.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	add_child(_plate)

@@ -4,7 +4,6 @@ const FRAME_TEX := preload("res://assets/modules/paywall_frame.png")
 const HERO_TEX := preload("res://assets/modules/paywall_hero.png")
 const CLOSE_TEX := preload("res://assets/modules/btn_close_x.png")
 const PLATE_TEX := preload("res://assets/modules/btn_gold_plate.png")
-const CHROMA := preload("res://shaders/chroma_key.gdshader")
 
 @onready var price_label: Label = $Panel/VBox/PriceLabel
 @onready var buy_button: Button = $Panel/VBox/BuyButton
@@ -77,11 +76,8 @@ func _style() -> void:
 	panel.z_as_relative = true
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	if frame:
-		var mat := ShaderMaterial.new()
-		mat.shader = CHROMA
 		frame.visible = true
-		frame.material = mat
-		frame.texture = FRAME_TEX
+		Chroma.apply(frame, FRAME_TEX)
 		frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		frame.stretch_mode = TextureRect.STRETCH_SCALE
 		frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -93,7 +89,7 @@ func _style() -> void:
 	if not has_node("CloseX"):
 		_close_x = TextureButton.new()
 		_close_x.name = "CloseX"
-		_close_x.texture_normal = CLOSE_TEX
+		Chroma.apply(_close_x, CLOSE_TEX)
 		_empty_tex_button(_close_x)
 		_close_x.z_index = 3
 		_close_x.z_as_relative = true
@@ -102,7 +98,7 @@ func _style() -> void:
 	else:
 		_close_x = $CloseX
 	if hero:
-		hero.texture = HERO_TEX
+		Chroma.apply(hero, HERO_TEX)
 		hero.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		hero.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		hero.custom_minimum_size = Vector2(0, 168)
@@ -155,10 +151,7 @@ func _premium_cta(button: Button) -> void:
 		_buy_plate.name = "Plate"
 		button.add_child(_buy_plate)
 		button.move_child(_buy_plate, 0)
-	var mat := ShaderMaterial.new()
-	mat.shader = CHROMA
-	_buy_plate.material = mat
-	_buy_plate.texture = PLATE_TEX
+	Chroma.apply(_buy_plate, PLATE_TEX)
 	_buy_plate.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_buy_plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_buy_plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -354,7 +347,7 @@ func _on_purchase_started() -> void:
 func _on_success() -> void:
 	_set_busy(false)
 	status_label.text = "Thank you. Every module is unlocked."
-	AnalyticsService.log_event("purchase", {"product_id": IAPManager.PRODUCT_LIFETIME})
+	AnalyticsService.log_purchase()
 	await get_tree().create_timer(0.9).timeout
 	hide()
 

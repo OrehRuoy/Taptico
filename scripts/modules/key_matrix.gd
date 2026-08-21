@@ -4,7 +4,6 @@ extends FidgetModule
 enum SwitchStyle { LINEAR, TACTILE, CLICKY }
 
 const KEYCAP_RAW := preload("res://assets/modules/keycap.png")
-const CHROMA := preload("res://shaders/chroma_key.gdshader")
 const LAYOUT := [
 	[{"label": "7"}, {"label": "8"}, {"label": "9"}],
 	[{"label": "4"}, {"label": "5"}, {"label": "6"}],
@@ -27,8 +26,6 @@ func _ready() -> void:
 	display_name = "Key Matrix"
 	is_premium = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	var chroma := ShaderMaterial.new()
-	chroma.shader = CHROMA
 	var track := PanelContainer.new()
 	track.name = "FeelRow"
 	track.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -68,8 +65,7 @@ func _ready() -> void:
 			if key.get("empty", false):
 				continue
 			var cap := Sprite2D.new()
-			cap.texture = KEYCAP_RAW
-			cap.material = chroma
+			Chroma.apply(cap, KEYCAP_RAW)
 			cap.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 			add_child(cap)
 			_caps.append(cap)

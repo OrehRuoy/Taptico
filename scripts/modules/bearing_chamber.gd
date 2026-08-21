@@ -6,7 +6,6 @@ const WALL_SEGS := 36
 const BALL_R := 16.0
 const WELL_TEX := preload("res://assets/modules/chamber_well.png")
 const BALL_TEX := preload("res://assets/modules/bearing_photo.png")
-const CHROMA := preload("res://shaders/chroma_key.gdshader")
 
 @onready var chamber: Node2D = $Chamber
 @onready var balls_root: Node2D = $Chamber/Balls
@@ -29,24 +28,21 @@ func _ready() -> void:
 		frame.hide()
 		frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_well = Sprite2D.new()
-	_well.texture = WELL_TEX
+	Chroma.apply(_well, WELL_TEX)
 	_well.z_index = 0
 	_well.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	chamber.add_child(_well)
 	chamber.move_child(_well, 0)
 	_disable_box_walls()
 	_build_rim()
-	var ball_mat := ShaderMaterial.new()
-	ball_mat.shader = CHROMA
-	ball_mat.set_shader_parameter("circle_mask", 1.0)
-	ball_mat.set_shader_parameter("circle_radius", 0.488)
-	ball_mat.set_shader_parameter("circle_feather", 0.022)
 	for i in BALL_COUNT:
 		var ball := balls_root.get_node("Ball%d" % i) as RigidBody2D
 		ball.contact_monitor = true
 		ball.max_contacts_reported = 8
 		ball.gravity_scale = 1.0
 		ball.linear_damp = 0.35
+		ball.freeze = true
+		ball.freeze_mode = RigidBody2D.FREEZE_MODE_STATIC
 		ball.body_entered.connect(_on_ball_collision)
 		if ball.has_node("Sprite"):
 			ball.get_node("Sprite").hide()
@@ -54,8 +50,7 @@ func _ready() -> void:
 			ball.get_node("Photo").queue_free()
 		var sprite := Sprite2D.new()
 		sprite.name = "Photo"
-		sprite.texture = BALL_TEX
-		sprite.material = ball_mat
+		Chroma.apply(sprite, BALL_TEX)
 		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		if BALL_TEX:
 			var sc := (BALL_R * 2.0) / (float(BALL_TEX.get_width()) * 0.90)
@@ -64,7 +59,17 @@ func _ready() -> void:
 		_balls.append(ball)
 	balls_root.z_index = 1
 	resized.connect(_layout)
+	if not get_viewport().size_changed.is_connected(_on_viewport_resized):
+		get_viewport().size_changed.connect(_on_viewport_resized)
+	_set_balls_frozen(true)
 	_layout()
+
+
+func _on_viewport_resized() -> void:
+	_layout()
+	if _active:
+		_respawn_balls()
+		_set_balls_frozen(false)
 
 
 func _disable_box_walls() -> void:
@@ -90,6 +95,7 @@ func _build_rim() -> void:
 func _layout() -> void:
 	if size.x < 8.0 or size.y < 8.0:
 		return
+	_set_balls_frozen(true)
 	var c := ReachSettings.play_center(size)
 	chamber.position = c
 	var well_d := minf(size.x, size.y) * 0.88
@@ -99,6 +105,9 @@ func _layout() -> void:
 		_well.position = Vector2.ZERO
 	_inner_radius = well_d * 0.352
 	_layout_rim(_inner_radius)
+	_respawn_balls()
+	if _active:
+		_set_balls_frozen(false)
 
 
 func _layout_rim(radius: float) -> void:
@@ -113,11 +122,71 @@ func _layout_rim(radius: float) -> void:
 
 
 func on_activate() -> void:
+	if balls_root:
+		balls_root.process_mode = Node.PROCESS_MODE_INHERIT
 	_layout()
+	_respawn_balls()
+	_set_balls_frozen(false)
+
+
+func on_deactivate() -> void:
+	_set_balls_frozen(true)
+	if balls_root:
+		balls_root.process_mode = Node.PROCESS_MODE_DISABLED
+
+
+func _physics_process(_delta: float) -> void:
+	if not _active:
+		return
 	for ball in _balls:
-		if ball.position.length() > _inner_radius - BALL_R - 2.0:
-			ball.position = Vector2(randf_range(-40, 40), randf_range(-40, 40))
-		ball.sleeping = false
+		if not is_instance_valid(ball):
+			continue
+		if not ball.position.is_finite() or ball.position.length() > _inner_radius + BALL_R * 3.0:
+			_respawn_balls()
+			return
+
+
+func _set_balls_frozen(frozen: bool) -> void:
+	for ball in _balls:
+		if not is_instance_valid(ball):
+			continue
+		ball.freeze = frozen
+		ball.freeze_mode = RigidBody2D.FREEZE_MODE_STATIC
+		if frozen:
+			ball.linear_velocity = Vector2.ZERO
+			ball.angular_velocity = 0.0
+			ball.sleeping = true
+		else:
+			ball.sleeping = false
+
+
+func _respawn_balls() -> void:
+	var spots: Array[Vector2] = [
+		Vector2(-28, -24),
+		Vector2(0, -36),
+		Vector2(28, -18),
+		Vector2(-16, 22),
+		Vector2(20, 30),
+	]
+	var limit := maxf(_inner_radius - BALL_R - 8.0, 12.0)
+	for i in _balls.size():
+		var ball := _balls[i]
+		if not is_instance_valid(ball):
+			continue
+		var pos := spots[i % spots.size()]
+		if pos.length() > limit:
+			pos = pos.normalized() * limit
+		if not pos.is_finite():
+			pos = Vector2.ZERO
+		ball.freeze = true
+		ball.linear_velocity = Vector2.ZERO
+		ball.angular_velocity = 0.0
+		ball.position = pos
+		if not ball.position.is_finite():
+			ball.position = Vector2.ZERO
+		ball.reset_physics_interpolation()
+	if _active:
+		_set_balls_frozen(false)
 
 
 func on_tilt(accel: Vector3, _gyro: Vector3) -> void:
@@ -128,7 +197,8 @@ func on_tilt(accel: Vector3, _gyro: Vector3) -> void:
 		var mouse_force := local.normalized() * minf(local.length() / 90.0, 1.0) * (1400.0 * maxf(shake, 0.35))
 		force = Vector2(0, 720 * maxf(shake, 0.2)) + mouse_force
 	for ball in _balls:
-		ball.apply_central_force(force * ball.mass)
+		if is_instance_valid(ball) and not ball.freeze:
+			ball.apply_central_force(force * ball.mass)
 
 
 func _on_ball_collision(_body: Node) -> void:

@@ -4,7 +4,6 @@ extends Control
 const FRAME_TEX := preload("res://assets/modules/paywall_frame.png")
 const TITLE_TEX := preload("res://assets/modules/title_settings.png")
 const CLOSE_TEX := preload("res://assets/modules/btn_close_x.png")
-const CHROMA := preload("res://shaders/chroma_key.gdshader")
 
 var _sound_btn: Button
 var _vol: HSlider
@@ -81,27 +80,21 @@ func _build() -> void:
 	_frame = TextureRect.new()
 	_frame.name = "Frame"
 	_frame.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_frame.texture = FRAME_TEX
+	Chroma.apply(_frame, FRAME_TEX)
 	_frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_frame.stretch_mode = TextureRect.STRETCH_SCALE
 	_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var mat := ShaderMaterial.new()
-	mat.shader = CHROMA
-	_frame.material = mat
 	_shell.add_child(_frame)
 
 	_title = TextureRect.new()
-	_title.texture = TITLE_TEX
+	Chroma.apply(_title, TITLE_TEX)
 	_title.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_title.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var title_mat := ShaderMaterial.new()
-	title_mat.shader = CHROMA
-	_title.material = title_mat
 	_shell.add_child(_title)
 
 	_close = TextureButton.new()
-	_close.texture_normal = CLOSE_TEX
+	Chroma.apply(_close, CLOSE_TEX)
 	_empty_tex_button(_close)
 	_close.pressed.connect(hide_settings)
 	_shell.add_child(_close)

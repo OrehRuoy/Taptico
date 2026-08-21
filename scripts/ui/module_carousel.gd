@@ -4,7 +4,6 @@ const GOLD := Color(0.84, 0.70, 0.44)
 const MUTED := Color(0.70, 0.73, 0.76)
 const INK := Color(0.07, 0.07, 0.08)
 const SWIPE_PX := 64.0
-const CHROMA := preload("res://shaders/chroma_key.gdshader")
 
 var _icon_size := 58.0
 
@@ -27,18 +26,17 @@ var _nav_buttons: Array[TextureButton] = []
 var _nav_labels: Array[Label] = []
 var _swipe_from := Vector2.ZERO
 var _swiping: bool = false
-var _chroma: ShaderMaterial
+var _analytics_id: String = ""
+var _play_started_ms: int = 0
 
 
 func _ready() -> void:
-	_chroma = ShaderMaterial.new()
-	_chroma.shader = CHROMA
 	if has_node("TitleBand/TitlePlate"):
-		$TitleBand/TitlePlate.material = _chroma
+		Chroma.apply($TitleBand/TitlePlate, $TitleBand/TitlePlate.texture, 0.0, 512)
 	if has_node("Header/LogoMark"):
-		$Header/LogoMark.material = _chroma
+		Chroma.apply($Header/LogoMark, $Header/LogoMark.texture, 0.0, 256)
 	if has_node("Header/Logo"):
-		$Header/Logo.material = _chroma
+		Chroma.apply($Header/Logo, $Header/Logo.texture, 0.0, 512)
 		$Header/Logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		$Header/Logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_style_chrome()
@@ -83,6 +81,8 @@ func _style_chrome() -> void:
 	hint_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_style_icon_button(settings_button)
 	_style_icon_button(unlock_button)
+	Chroma.apply(settings_button, settings_button.texture_normal, 0.0, 256)
+	Chroma.apply(unlock_button, unlock_button.texture_normal, 0.0, 256)
 
 
 func _safe_margins() -> Vector4:
@@ -105,24 +105,31 @@ func _layout_chrome() -> void:
 		return
 	var safe := _safe_margins()
 	var header_h := clampf(size.y * 0.075, 52.0, 78.0)
-	var title_h := clampf(size.y * 0.082, 56.0, 86.0)
+	var title_h := clampf(size.y * 0.095, 64.0, 96.0)
 	var nav_h := clampf(size.y * 0.125, 92.0, 128.0)
 	var stage_inset := clampf(size.x * 0.03, 10.0, 22.0)
+	var header_top := maxf(4.0, safe.y - 10.0)
 	$HeaderBar.offset_top = 0.0
-	$HeaderBar.offset_bottom = safe.y + header_h
-	$Header.offset_top = safe.y
-	$Header.offset_bottom = safe.y + header_h
-	title_band.offset_top = safe.y + header_h
-	title_band.offset_bottom = safe.y + header_h + title_h
+	$HeaderBar.offset_bottom = header_top + header_h
+	$Header.offset_top = header_top
+	$Header.offset_bottom = header_top + header_h
+	title_band.offset_top = header_top + header_h
+	title_band.offset_bottom = header_top + header_h + title_h
 	stage.offset_left = stage_inset
 	stage.offset_right = -stage_inset
-	stage.offset_top = safe.y + header_h + title_h + 8.0
+	stage.offset_top = header_top + header_h + title_h + 8.0
 	stage.offset_bottom = -(nav_h + safe.w)
 	nav_bar.offset_left = stage_inset
 	nav_bar.offset_right = -stage_inset
 	nav_bar.offset_top = -(nav_h + safe.w - 4.0)
 	nav_bar.offset_bottom = -maxi(4, int(safe.w) - 2)
 	_layout_header_controls(header_h)
+	title_label.offset_top = 0.0
+	title_label.offset_bottom = title_h * 0.34
+	subtitle_label.offset_top = title_h * 0.44
+	subtitle_label.offset_bottom = title_h * 0.62
+	hint_label.offset_top = title_h * 0.64
+	hint_label.offset_bottom = title_h
 	_icon_size = clampf(minf(size.x, size.y) * 0.07, 48.0, 72.0)
 	_update_nav_styles()
 
@@ -130,9 +137,9 @@ func _layout_chrome() -> void:
 func _layout_header_controls(header_h: float) -> void:
 	var w := size.x
 	var pad := clampf(w * 0.02, 8.0, 16.0)
-	var inner_h := header_h - 8.0
+	var inner_h := header_h - 4.0
 	var btn_h := clampf(inner_h, 32.0, 44.0)
-	var top := (header_h - btn_h) * 0.5
+	var top := 2.0
 	var logo_w := clampf(w * 0.28, 88.0, 140.0)
 	var logo: TextureRect = $Header/Logo
 	logo.offset_left = pad
@@ -212,8 +219,7 @@ func _build_nav() -> void:
 		btn.focus_mode = Control.FOCUS_NONE
 		var tex: Texture2D = load(str(mod.get("icon", "")))
 		if tex:
-			btn.texture_normal = tex
-			btn.material = _chroma
+			Chroma.apply(btn, tex, 0.0, 256)
 		btn.pressed.connect(_show_module.bind(i))
 		var lab := Label.new()
 		lab.text = str(mod.get("short", ""))
@@ -222,9 +228,13 @@ func _build_nav() -> void:
 		lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		col.add_child(btn)
 		col.add_child(lab)
+		col.custom_minimum_size = Vector2(_icon_size + 10.0, _icon_size + 24.0)
 		chip_row.add_child(col)
 		_nav_buttons.append(btn)
 		_nav_labels.append(lab)
+	chip_row.size_flags_horizontal = 0
+	chip_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	call_deferred("_update_nav_styles")
 
 
 func _style_nav_button(button: TextureButton, active: bool, locked: bool) -> void:
@@ -261,21 +271,27 @@ func _finish_swipe(pos: Vector2) -> void:
 		_show_module(_current_index - 1)
 
 
-func _show_module(index: int) -> void:
+func _show_module(index: int, track: bool = true) -> void:
 	index = clampi(index, 0, ModuleRegistry.get_module_count() - 1)
 	var mod := ModuleRegistry.get_module(index)
 	if mod.is_empty():
 		return
-	if not EntitlementStore.is_module_unlocked(mod["id"]):
-		_present_paywall(mod["name"])
+	if not EntitlementStore.is_module_unlocked(str(mod.get("id", ""))):
+		_present_paywall(str(mod.get("name", "")))
 		_update_nav_styles()
 		return
 	for key in _module_instances:
 		var inst: FidgetModule = _module_instances[key]
 		inst.deactivate()
-	var scene_path: String = mod["scene"]
+	var scene_path := str(mod.get("scene", ""))
+	if scene_path.is_empty():
+		push_error("Module missing scene: %s" % str(mod.get("id", "")))
+		return
 	if not _module_instances.has(scene_path):
 		var packed: PackedScene = load(scene_path)
+		if packed == null:
+			push_error("Could not load module scene: %s" % scene_path)
+			return
 		var instance: FidgetModule = packed.instantiate()
 		module_host.add_child(instance)
 		instance.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -283,24 +299,82 @@ func _show_module(index: int) -> void:
 	var active: FidgetModule = _module_instances[scene_path]
 	active.activate()
 	_current_index = index
-	title_label.text = mod["name"]
-	subtitle_label.text = "FREE" if not mod["premium"] else "PREMIUM"
+	title_label.text = str(mod.get("name", ""))
+	subtitle_label.text = "FREE" if not bool(mod.get("premium", false)) else "PREMIUM"
 	hint_label.text = str(mod.get("hint", ""))
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_update_nav_styles()
-	AnalyticsService.log_screen(str(mod.get("id", mod["name"])))
-	AnalyticsService.log_event("module_view", {
-		"module_id": str(mod.get("id", "")),
-		"module_name": str(mod.get("name", "")),
-		"premium": 1 if bool(mod.get("premium", false)) else 0,
-	})
+	if track:
+		_track_fidget(mod)
+
+
+func _track_fidget(mod: Dictionary) -> void:
+	var id := str(mod.get("id", ""))
+	if id.is_empty():
+		return
+	if id == _analytics_id:
+		return
+	_flush_play_time()
+	_analytics_id = id
+	_play_started_ms = Time.get_ticks_msec()
+	AnalyticsService.log_screen(id)
+	AnalyticsService.log_fidget_open(mod)
+
+
+func _flush_play_time() -> void:
+	if _analytics_id.is_empty() or _play_started_ms <= 0:
+		return
+	var seconds := int((Time.get_ticks_msec() - _play_started_ms) / 1000.0)
+	var prev := ModuleRegistry.get_module_by_id(_analytics_id)
+	if not prev.is_empty():
+		AnalyticsService.log_fidget_play(prev, seconds)
+	_play_started_ms = 0
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_flush_play_time()
+	elif what == NOTIFICATION_APPLICATION_RESUMED:
+		if not _analytics_id.is_empty():
+			_play_started_ms = Time.get_ticks_msec()
 
 
 func _update_nav_styles() -> void:
 	for i in _nav_buttons.size():
 		var mod := ModuleRegistry.get_module(i)
-		var locked := not EntitlementStore.is_module_unlocked(mod["id"])
+		var locked := not EntitlementStore.is_module_unlocked(str(mod.get("id", "")))
 		_style_nav_button(_nav_buttons[i], i == _current_index, locked)
+		var col := _nav_buttons[i].get_parent() as Control
+		if col:
+			col.custom_minimum_size = Vector2(_icon_size + 10.0, _icon_size + 24.0)
+	var need := 0.0
+	var sep := float(chip_row.get_theme_constant("separation"))
+	for i in chip_row.get_child_count():
+		var child := chip_row.get_child(i) as Control
+		if child == null:
+			continue
+		need += child.get_combined_minimum_size().x
+		if i > 0:
+			need += sep
+	chip_row.custom_minimum_size.x = maxf(need, nav_bar.size.x)
+	chip_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	call_deferred("_center_nav_on_current")
+
+
+func _center_nav_on_current() -> void:
+	if _nav_buttons.is_empty() or nav_bar.size.x < 8.0:
+		return
+	if chip_row.get_combined_minimum_size().x <= nav_bar.size.x + 1.0:
+		nav_bar.scroll_horizontal = 0
+		return
+	if _current_index < 0 or _current_index >= _nav_buttons.size():
+		return
+	var col := _nav_buttons[_current_index].get_parent() as Control
+	if col == null:
+		return
+	var mid := col.position.x + col.size.x * 0.5
+	var max_scroll := maxf(0.0, chip_row.size.x - nav_bar.size.x)
+	nav_bar.scroll_horizontal = int(clampf(mid - nav_bar.size.x * 0.5, 0.0, max_scroll))
 
 
 func _present_paywall(module_name: String = "") -> void:
@@ -309,7 +383,7 @@ func _present_paywall(module_name: String = "") -> void:
 	paywall.move_to_front()
 	paywall.show_paywall(module_name)
 	AnalyticsService.log_screen("paywall")
-	AnalyticsService.log_event("paywall_shown", {"module_name": module_name})
+	AnalyticsService.log_paywall(module_name)
 
 
 func _on_unlock_pressed() -> void:
@@ -333,7 +407,7 @@ func _refresh_lock_state() -> void:
 	unlock_button.visible = true
 	unlock_button.modulate = Color.WHITE
 	_update_nav_styles()
-	_show_module(_current_index)
+	_show_module(_current_index, false)
 
 
 func _on_desk_stand(active: bool) -> void:

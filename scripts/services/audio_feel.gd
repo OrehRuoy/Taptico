@@ -48,6 +48,8 @@ func _build_streams() -> void:
 	_streams["clack"] = _make_tone(820.0, 0.045, 28.0, 0.42)
 	_streams["soft"] = _make_tone(1100.0, 0.022, 48.0, 0.35)
 	_streams["click"] = _make_tone(2400.0, 0.018, 70.0, 0.62)
+	_streams["snap"] = _make_tone(1550.0, 0.028, 62.0, 0.58)
+	_streams["pop"] = _make_tone(980.0, 0.05, 36.0, 0.5)
 
 
 func _make_tone(freq: float, seconds: float, decay: float, amp: float) -> AudioStreamWAV:
@@ -121,6 +123,14 @@ func play_key_soft() -> void:
 
 func play_key_click() -> void:
 	_play("click", randf_range(0.94, 1.08), 0.8)
+
+
+func play_snap(gain: float = 0.7) -> void:
+	_play("snap", randf_range(0.92, 1.12), gain)
+
+
+func play_pop(gain: float = 0.6) -> void:
+	_play("pop", randf_range(0.88, 1.18), gain)
 
 
 func set_pitch_from_velocity(velocity: float, max_velocity: float = 1200.0) -> void:

@@ -5,13 +5,11 @@ const SWITCH_COUNT := 4
 const HOUSING_TEX := preload("res://assets/modules/switch_housing.png")
 const PADDLE_OFF := preload("res://assets/modules/switch_paddle_off.png")
 const PADDLE_ON := preload("res://assets/modules/switch_paddle_on.png")
-const CHROMA := preload("res://shaders/chroma_key.gdshader")
 
 var _springs: Array[Spring2D] = []
 var _states: Array[bool] = []
 var _housings: Array[Sprite2D] = []
 var _paddles: Array[Sprite2D] = []
-var _chroma: ShaderMaterial
 var _paddle_sc: float = 1.0
 
 
@@ -20,8 +18,6 @@ func _ready() -> void:
 	display_name = "Toggle Switches"
 	is_premium = false
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	_chroma = ShaderMaterial.new()
-	_chroma.shader = CHROMA
 	for i in SWITCH_COUNT:
 		var spring := Spring2D.new()
 		spring.stiffness = 720.0
@@ -29,16 +25,14 @@ func _ready() -> void:
 		_springs.append(spring)
 		_states.append(false)
 		var housing := Sprite2D.new()
-		housing.texture = HOUSING_TEX
-		housing.material = _chroma
+		Chroma.apply(housing, HOUSING_TEX)
 		housing.centered = true
 		housing.z_index = 0
 		housing.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		add_child(housing)
 		_housings.append(housing)
 		var paddle := Sprite2D.new()
-		paddle.texture = PADDLE_OFF
-		paddle.material = _chroma
+		Chroma.apply(paddle, PADDLE_OFF)
 		paddle.centered = true
 		paddle.z_index = 1
 		paddle.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
@@ -102,7 +96,7 @@ func _apply_rocker(index: int) -> void:
 	paddle.scale = Vector2(_paddle_sc, _paddle_sc)
 	paddle.flip_v = false
 	paddle.flip_h = false
-	paddle.texture = PADDLE_ON if t > 0.5 else PADDLE_OFF
+	paddle.texture = Chroma.tex(PADDLE_ON) if t > 0.5 else Chroma.tex(PADDLE_OFF)
 
 
 func _gui_input(event: InputEvent) -> void:

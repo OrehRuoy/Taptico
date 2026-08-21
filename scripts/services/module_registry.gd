@@ -1,7 +1,7 @@
 extends Node
 ## Module catalog and scene paths.
 
-const FREE_MODULES: Array[String] = ["combination_lock", "toggle_switches"]
+const FREE_MODULES: Array[String] = ["combination_lock", "toggle_switches", "magnetic_slider"]
 
 const MODULES: Array[Dictionary] = [
 	{
@@ -47,6 +47,69 @@ const MODULES: Array[Dictionary] = [
 		"icon": "res://assets/modules/nav_keys.png",
 		"hint": "Pick Smooth, Bump, or Click, then tap.",
 		"scene": "res://scenes/modules/keys/KeyMatrix.tscn",
+		"premium": true,
+	},
+	{
+		"id": "magnetic_slider",
+		"name": "Magnetic Slider",
+		"short": "Slider",
+		"icon": "res://assets/modules/nav_slider.png",
+		"hint": "Drag the plate. It snaps to either end.",
+		"scene": "res://scenes/modules/slider/MagneticSlider.tscn",
+		"premium": false,
+	},
+	{
+		"id": "metal_spinner",
+		"name": "Metal Spinner",
+		"short": "Spinner",
+		"icon": "res://assets/modules/nav_spinner.png",
+		"hint": "Flick to spin. Tilt adds a little weight.",
+		"scene": "res://scenes/modules/spinner/MetalSpinner.tscn",
+		"premium": true,
+	},
+	{
+		"id": "clicker_pen",
+		"name": "Clicker Pen",
+		"short": "Pen",
+		"icon": "res://assets/modules/nav_pen.png",
+		"hint": "Click the top. It stays down until you click again.",
+		"scene": "res://scenes/modules/pen/ClickerPen.tscn",
+		"premium": true,
+	},
+	{
+		"id": "desk_cube",
+		"name": "Desk Cube",
+		"short": "Cube",
+		"icon": "res://assets/modules/nav_cube.png",
+		"hint": "Swipe beside the cube to flip faces. Stick, spin, rub, or tap.",
+		"scene": "res://scenes/modules/cube/DeskCube.tscn",
+		"premium": true,
+	},
+	{
+		"id": "infinity_cube",
+		"name": "Infinity Cube",
+		"short": "Infinity",
+		"icon": "res://assets/modules/nav_infinity.png",
+		"hint": "Grab the top or bottom and drag any way to fold. On the long shape, drag the other way to fold it up.",
+		"scene": "res://scenes/modules/infinity/InfinityCube.tscn",
+		"premium": true,
+	},
+	{
+		"id": "zipper",
+		"name": "Zipper",
+		"short": "Zipper",
+		"icon": "res://assets/modules/nav_zipper.png",
+		"hint": "Drag the puller to zip and unzip.",
+		"scene": "res://scenes/modules/zipper/Zipper.tscn",
+		"premium": true,
+	},
+	{
+		"id": "dimple_plate",
+		"name": "Dimple Plate",
+		"short": "Dimples",
+		"icon": "res://assets/modules/nav_dimple.png",
+		"hint": "Tap to pop. Use Reset to flip them back.",
+		"scene": "res://scenes/modules/dimple/DimplePlate.tscn",
 		"premium": true,
 	},
 ]
