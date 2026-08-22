@@ -1,9 +1,8 @@
 extends FidgetModule
-## Ambient Pad — circular touch plate. X = tone, Y = brightness.
+## Ambient Pad — circular touch plate. Left/right is pitch, up/down is brightness.
 
 const PLATE_TEX := preload("res://assets/modules/ambient_pad.png")
 
-@onready var pad: TextureRect = $Pad
 @onready var glow: ColorRect = $Glow
 @onready var noise_player: AudioStreamPlayer = $NoisePlayer
 
@@ -12,6 +11,9 @@ var _pointer := Vector2(0.5, 0.5)
 var _glow_pos := Vector2(0.5, 0.5)
 var _phase: float = 0.0
 var _brown: float = 0.0
+var _lp: float = 0.0
+var _freq: float = 220.0
+var _amp: float = 0.06
 var _playback: AudioStreamGeneratorPlayback
 var _plate: Sprite2D
 var _fx: Control
@@ -26,9 +28,6 @@ func _ready() -> void:
 	display_name = "Ambient Pad"
 	is_premium = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	if pad:
-		pad.hide()
-		pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if glow:
 		glow.hide()
 		glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -145,12 +144,25 @@ func _process(delta: float) -> void:
 	_glow_pos = _glow_pos.lerp(_pointer, clampf(delta * 14.0, 0.0, 1.0))
 	if _playback:
 		var to_fill := _playback.get_frames_available()
+		var freq_target := lerpf(92.0, 620.0, _pointer.x)
+		var amp_target := 0.20 if _touching else 0.10
+		var bright := 1.0 - _pointer.y
+		var cutoff := lerpf(0.035, 0.24, bright)
+		var harm := 0.06 + 0.32 * bright
+		var noise_mix := 0.08 + 0.28 * _pointer.y
+		var sneak := 0.0022
 		for i in to_fill:
-			_brown += randf_range(-0.04, 0.04)
-			_brown = clampf(_brown, -0.25, 0.25)
-			_phase += 0.002
-			var sample := _brown + sin(_phase) * 0.012
-			_playback.push_frame(Vector2(sample, sample * 0.92))
+			_freq += (freq_target - _freq) * sneak
+			_amp += (amp_target - _amp) * sneak
+			_phase += TAU * _freq / 44100.0
+			if _phase > TAU:
+				_phase -= TAU
+			_brown += randf_range(-0.045, 0.045)
+			_brown = clampf(_brown, -0.28, 0.28)
+			var osc := sin(_phase) * 0.70 + sin(_phase * 2.0) * harm
+			var raw := (osc + _brown * noise_mix) * _amp
+			_lp += (raw - _lp) * cutoff
+			_playback.push_frame(Vector2(_lp, _lp * 0.94))
 	if _fx:
 		_fx.queue_redraw()
 
@@ -177,8 +189,6 @@ func _update_from_pos(pos: Vector2) -> void:
 		clampf(0.5 + local.x / maxf(_plate_radius * 2.0, 1.0), 0.0, 1.0),
 		clampf(0.5 + local.y / maxf(_plate_radius * 2.0, 1.0), 0.0, 1.0)
 	)
-	AudioFeel.set_lowpass_from_position(_pointer.y)
-	AudioFeel.set_pitch_from_velocity(absf(_pointer.x - 0.5) * 2200.0)
 
 
 func _draw_finger_fx() -> void:

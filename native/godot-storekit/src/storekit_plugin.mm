@@ -1,5 +1,6 @@
 #import "storekit_plugin.h"
 #import <StoreKit/StoreKit.h>
+#import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 
 void emit_purchase_updated(const char *product_id);
@@ -232,6 +233,32 @@ void storekit_purchase(const char *product_id) {
 
 void storekit_restore() {
     [g_storekit restore];
+}
+
+void storekit_request_review() {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (@available(iOS 16.0, *)) {
+            UIWindowScene *scene = nil;
+            for (UIScene *candidate in UIApplication.sharedApplication.connectedScenes) {
+                if (candidate.activationState == UISceneActivationStateForegroundActive &&
+                    [candidate isKindOfClass:[UIWindowScene class]]) {
+                    scene = (UIWindowScene *)candidate;
+                    break;
+                }
+            }
+            if (scene == nil) {
+                for (UIScene *candidate in UIApplication.sharedApplication.connectedScenes) {
+                    if ([candidate isKindOfClass:[UIWindowScene class]]) {
+                        scene = (UIWindowScene *)candidate;
+                        break;
+                    }
+                }
+            }
+            if (scene != nil) {
+                [SKStoreReviewController requestReviewInScene:scene];
+            }
+        }
+    });
 }
 
 const char *storekit_get_price() {

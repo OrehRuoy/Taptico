@@ -18,6 +18,7 @@ var _icon_size := 58.0
 @onready var nav_bar: ScrollContainer = $NavBar
 @onready var chip_row: HBoxContainer = $NavBar/ChipRow
 @onready var paywall: Control = $Paywall
+@onready var enjoy_overlay: Control = $Enjoy
 @onready var stage: Panel = $Stage
 
 var _current_index: int = 0
@@ -26,15 +27,14 @@ var _nav_buttons: Array[TextureButton] = []
 var _nav_labels: Array[Label] = []
 var _swipe_from := Vector2.ZERO
 var _swiping: bool = false
+var _nav_pressing := false
+var _nav_touch := Vector2.ZERO
+var _nav_scroll0 := 0
 var _analytics_id: String = ""
 var _play_started_ms: int = 0
 
 
 func _ready() -> void:
-	if has_node("TitleBand/TitlePlate"):
-		Chroma.apply($TitleBand/TitlePlate, $TitleBand/TitlePlate.texture, 0.0, 512)
-	if has_node("Header/LogoMark"):
-		Chroma.apply($Header/LogoMark, $Header/LogoMark.texture, 0.0, 256)
 	if has_node("Header/Logo"):
 		Chroma.apply($Header/Logo, $Header/Logo.texture, 0.0, 512)
 		$Header/Logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -43,21 +43,44 @@ func _ready() -> void:
 	_build_nav()
 	unlock_button.pressed.connect(_on_unlock_pressed)
 	settings_button.pressed.connect(_on_settings_pressed)
+	if settings_overlay.has_signal("preview_enjoy_requested"):
+		settings_overlay.preview_enjoy_requested.connect(_on_preview_enjoy)
+	if settings_overlay.has_signal("simulate_enjoy_requested"):
+		settings_overlay.simulate_enjoy_requested.connect(_on_simulate_enjoy)
 	title_band.gui_input.connect(_on_chrome_swipe)
 	resized.connect(_layout_chrome)
 	get_viewport().size_changed.connect(_layout_chrome)
 	paywall.z_index = 200
 	paywall.z_as_relative = false
+	enjoy_overlay.z_index = 220
+	enjoy_overlay.z_as_relative = false
 	EntitlementStore.entitlements_changed.connect(_refresh_lock_state)
 	DeviceService.desk_stand_changed.connect(_on_desk_stand)
 	_layout_chrome()
 	_show_module(0)
 	_refresh_lock_state()
+	nav_bar.gui_input.connect(_on_nav_input)
+	nav_bar.scroll_deadzone = 16
+	nav_bar.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	chip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	call_deferred("_maybe_show_enjoy")
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and event.keycode == KEY_F9:
+	if not (event is InputEventKey) or not event.pressed or event.echo:
+		return
+	if event.keycode == KEY_F9:
 		_on_reset_pressed()
+	if not EnjoyPrompt.debug_tools_enabled():
+		return
+	if event.keycode == KEY_F10:
+		_on_preview_enjoy()
+	elif event.keycode == KEY_F11:
+		EnjoyPrompt.reset_for_debug()
+		print("[Enjoy] Tracking reset. Unique days start at 1 (today).")
+	elif event.keycode == KEY_F12:
+		EnjoyPrompt.simulate_third_day()
+		_on_simulate_enjoy()
 
 
 func _style_chrome() -> void:
@@ -211,16 +234,16 @@ func _build_nav() -> void:
 		var col := VBoxContainer.new()
 		col.alignment = BoxContainer.ALIGNMENT_CENTER
 		col.add_theme_constant_override("separation", 2)
-		col.mouse_filter = Control.MOUSE_FILTER_STOP
+		col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var btn := TextureButton.new()
 		btn.custom_minimum_size = Vector2(_icon_size, _icon_size)
 		btn.ignore_texture_size = true
 		btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 		btn.focus_mode = Control.FOCUS_NONE
+		btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var tex: Texture2D = load(str(mod.get("icon", "")))
 		if tex:
 			Chroma.apply(btn, tex, 0.0, 256)
-		btn.pressed.connect(_show_module.bind(i))
 		var lab := Label.new()
 		lab.text = str(mod.get("short", ""))
 		lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -233,8 +256,37 @@ func _build_nav() -> void:
 		_nav_buttons.append(btn)
 		_nav_labels.append(lab)
 	chip_row.size_flags_horizontal = 0
+	chip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	chip_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	call_deferred("_update_nav_styles")
+
+
+func _on_nav_input(event: InputEvent) -> void:
+	if paywall.visible or settings_overlay.visible or enjoy_overlay.visible:
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		var button := event as InputEventMouseButton
+		if button.pressed:
+			_nav_pressing = true
+			_nav_touch = button.position
+			_nav_scroll0 = nav_bar.scroll_horizontal
+		else:
+			if _nav_pressing:
+				var moved := button.position.distance_to(_nav_touch)
+				var scrolled := absf(float(nav_bar.scroll_horizontal - _nav_scroll0))
+				if moved < 22.0 and scrolled < 22.0:
+					var idx := _nav_index_at(button.global_position)
+					if idx >= 0:
+						_show_module(idx)
+			_nav_pressing = false
+
+
+func _nav_index_at(global_pos: Vector2) -> int:
+	for i in _nav_buttons.size():
+		var col := _nav_buttons[i].get_parent() as Control
+		if col and col.get_global_rect().grow(4.0).has_point(global_pos):
+			return i
+	return -1
 
 
 func _style_nav_button(button: TextureButton, active: bool, locked: bool) -> void:
@@ -247,7 +299,7 @@ func _style_nav_button(button: TextureButton, active: bool, locked: bool) -> voi
 
 
 func _on_chrome_swipe(event: InputEvent) -> void:
-	if paywall.visible or settings_overlay.visible:
+	if paywall.visible or settings_overlay.visible or enjoy_overlay.visible:
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
@@ -337,6 +389,8 @@ func _notification(what: int) -> void:
 	elif what == NOTIFICATION_APPLICATION_RESUMED:
 		if not _analytics_id.is_empty():
 			_play_started_ms = Time.get_ticks_msec()
+		if EnjoyPrompt.should_show():
+			_maybe_show_enjoy()
 
 
 func _update_nav_styles() -> void:
@@ -357,7 +411,9 @@ func _update_nav_styles() -> void:
 		if i > 0:
 			need += sep
 	chip_row.custom_minimum_size.x = maxf(need, nav_bar.size.x)
-	chip_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	chip_row.alignment = (
+		BoxContainer.ALIGNMENT_BEGIN if need > nav_bar.size.x + 1.0 else BoxContainer.ALIGNMENT_CENTER
+	)
 	call_deferred("_center_nav_on_current")
 
 
@@ -389,13 +445,45 @@ func _present_paywall(module_name: String = "") -> void:
 func _on_unlock_pressed() -> void:
 	if settings_overlay.visible:
 		settings_overlay.hide_settings()
+	if enjoy_overlay.visible:
+		enjoy_overlay.hide()
 	_present_paywall()
 
 
 func _on_settings_pressed() -> void:
 	if paywall.visible:
 		paywall.hide()
+	if enjoy_overlay.visible:
+		enjoy_overlay.hide()
 	settings_overlay.show_settings()
+
+
+func _on_preview_enjoy() -> void:
+	if paywall.visible:
+		paywall.hide()
+	if settings_overlay.visible:
+		settings_overlay.hide_settings()
+	enjoy_overlay.present(true)
+
+
+func _on_simulate_enjoy() -> void:
+	if paywall.visible:
+		paywall.hide()
+	if settings_overlay.visible:
+		settings_overlay.hide_settings()
+	enjoy_overlay.present(false)
+
+
+func _maybe_show_enjoy() -> void:
+	await get_tree().create_timer(1.8).timeout
+	if not is_inside_tree():
+		return
+	if paywall.visible or settings_overlay.visible or enjoy_overlay.visible:
+		return
+	if DeviceService.desk_stand_active:
+		return
+	if EnjoyPrompt.should_show():
+		enjoy_overlay.present()
 
 
 func _on_reset_pressed() -> void:
@@ -419,3 +507,5 @@ func _on_desk_stand(active: bool) -> void:
 	settings_button.visible = not active
 	if settings_overlay.visible:
 		settings_overlay.hide_settings()
+	if enjoy_overlay.visible:
+		enjoy_overlay.hide()

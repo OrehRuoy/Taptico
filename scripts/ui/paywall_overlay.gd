@@ -46,6 +46,8 @@ func _ready() -> void:
 	IAPManager.purchase_failed.connect(_on_failed)
 	IAPManager.restore_finished.connect(_on_restore_done)
 	IAPManager.busy_changed.connect(_on_busy_changed)
+	if not EntitlementStore.entitlements_changed.is_connected(_on_entitlements_changed):
+		EntitlementStore.entitlements_changed.connect(_on_entitlements_changed)
 	_refresh_price()
 	_set_busy(IAPManager.is_busy())
 	resized.connect(_layout_sheet)
@@ -109,6 +111,14 @@ func _style() -> void:
 		features.hide()
 	if message_label:
 		message_label.hide()
+		message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		message_label.add_theme_font_size_override("font_size", 18)
+		message_label.add_theme_color_override("font_color", Color(0.93, 0.84, 0.62))
+		message_label.add_theme_color_override("font_outline_color", Color(0.08, 0.06, 0.04, 0.55))
+		message_label.add_theme_constant_override("outline_size", 3)
+		message_label.custom_minimum_size = Vector2(0, 40)
+		message_label.text = "You already own Premium"
 	if price_label:
 		price_label.show()
 		price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -242,6 +252,7 @@ func show_paywall(_module_name: String = "") -> void:
 	if close_button:
 		close_button.hide()
 	_refresh_price()
+	_refresh_owned()
 	z_index = 200
 	z_as_relative = false
 	move_to_front()
@@ -277,14 +288,41 @@ func _refresh_price() -> void:
 
 
 func _update_buy_enabled() -> void:
-	buy_button.disabled = IAPManager.is_busy() or not IAPManager.can_purchase()
+	_refresh_owned()
 	restore_button.disabled = IAPManager.is_busy()
 	restore_button.visible = true
 	_refresh_buy_visual()
 
 
+func _refresh_owned() -> void:
+	var owned := EntitlementStore.has_lifetime()
+	if buy_button:
+		buy_button.visible = not owned
+		buy_button.disabled = owned or IAPManager.is_busy() or not IAPManager.can_purchase()
+		buy_button.mouse_filter = Control.MOUSE_FILTER_IGNORE if owned else Control.MOUSE_FILTER_STOP
+	if _buy_plate:
+		_buy_plate.visible = not owned
+	if _buy_caption:
+		_buy_caption.visible = not owned
+	if price_label:
+		price_label.visible = not owned
+	if message_label:
+		message_label.visible = owned
+		if owned:
+			message_label.text = "You already own Premium"
+	if owned and status_label and status_label.text.begins_with("Loading"):
+		status_label.text = ""
+
+
+func _on_entitlements_changed() -> void:
+	_refresh_owned()
+	_refresh_buy_visual()
+
+
 func _refresh_buy_visual() -> void:
 	if _buy_plate == null:
+		return
+	if not buy_button.visible:
 		return
 	if buy_button.disabled:
 		_buy_plate.modulate = Color(1, 1, 1, 0.42)
@@ -317,7 +355,7 @@ func _on_busy_changed(is_busy: bool) -> void:
 
 
 func _on_buy() -> void:
-	if IAPManager.is_busy():
+	if IAPManager.is_busy() or EntitlementStore.has_lifetime():
 		return
 	AnalyticsService.log_event("paywall_buy_tap", {"price": IAPManager.get_price_display()})
 	IAPManager.purchase_lifetime()

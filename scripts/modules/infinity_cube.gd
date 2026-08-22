@@ -1,6 +1,5 @@
 extends FidgetModule
-## Eight hinged cubes. Drag from a side, the top, or the bottom to fold.
-## Real fidget: 8 cubes on hinges. Cube opens to a 2x4, then a half folds back in.
+## Eight hinged cubes. Drag from the top, bottom, or a side to fold, like a real infinity cube.
 
 const GOLD := Color(0.86, 0.70, 0.40)
 const GOLD_HI := Color(0.94, 0.82, 0.55)
@@ -116,6 +115,10 @@ func _setup_slab(side: String) -> void:
 	var ext := mx - mn + Vector3.ONE
 	_moving.clear()
 	_hy = mn.y + 1.0
+	# A stick/tower is long on Y. Fold that 4+4 or the piece cannot move.
+	if ext.y >= 3.6 and ext.y >= ext.x and ext.y >= ext.z:
+		_setup_y_slab(side)
+		return
 	var want_x: bool = side == "px" or side == "nx"
 	if want_x and ext.x < 1.9:
 		want_x = false
@@ -149,6 +152,108 @@ func _setup_slab(side: String) -> void:
 			for i in 8:
 				if _pos[i].z >= midz - 0.05:
 					_moving.append(i)
+	if _moving.size() != 4:
+		_setup_y_slab(side)
+
+
+func _setup_y_slab(side: String) -> void:
+	var lim := _limits()
+	var mn: Vector3 = lim[0]
+	var mx: Vector3 = lim[1]
+	var ext := mx - mn + Vector3.ONE
+	_moving.clear()
+	_mode = ""
+	if ext.y < 3.6:
+		return
+	var mid: float = mn.y + ext.y * 0.5
+	_hy = mid
+	for i in 8:
+		if _pos[i].y >= mid - 0.05:
+			_moving.append(i)
+	if _moving.size() != 4:
+		_moving.clear()
+		for i in 8:
+			if _pos[i].y <= mid - 0.95:
+				_moving.append(i)
+	if _moving.size() != 4:
+		_moving.clear()
+		_mode = ""
+		return
+	match side:
+		"px":
+			_mode = "top_px"
+			_hx = mx.x + 1.0
+		"nx":
+			_mode = "top_nx"
+			_hx = mn.x
+		"pz":
+			_mode = "top_pz"
+			_hz = mx.z + 1.0
+		_:
+			_mode = "top_nz"
+			_hz = mn.z
+
+
+func _setup_x_layer(hi: bool, side: String) -> void:
+	var lim := _limits()
+	var mn: Vector3 = lim[0]
+	var mx: Vector3 = lim[1]
+	_moving.clear()
+	if hi:
+		_hx = mx.x
+		for i in 8:
+			if _pos[i].x >= mx.x - 0.05:
+				_moving.append(i)
+	else:
+		_hx = mn.x + 1.0
+		for i in 8:
+			if _pos[i].x <= mn.x + 0.05:
+				_moving.append(i)
+	var prefix := "xhi_" if hi else "xlo_"
+	match side:
+		"px":
+			_mode = prefix + "px"
+			_hy = mx.y + 1.0
+		"nx":
+			_mode = prefix + "nx"
+			_hy = mn.y
+		"pz":
+			_mode = prefix + "pz"
+			_hz = mx.z + 1.0
+		_:
+			_mode = prefix + "nz"
+			_hz = mn.z
+
+
+func _setup_z_layer(hi: bool, side: String) -> void:
+	var lim := _limits()
+	var mn: Vector3 = lim[0]
+	var mx: Vector3 = lim[1]
+	_moving.clear()
+	if hi:
+		_hz = mx.z
+		for i in 8:
+			if _pos[i].z >= mx.z - 0.05:
+				_moving.append(i)
+	else:
+		_hz = mn.z + 1.0
+		for i in 8:
+			if _pos[i].z <= mn.z + 0.05:
+				_moving.append(i)
+	var prefix := "zhi_" if hi else "zlo_"
+	match side:
+		"px":
+			_mode = prefix + "px"
+			_hx = mx.x + 1.0
+		"nx":
+			_mode = prefix + "nx"
+			_hx = mn.x
+		"pz":
+			_mode = prefix + "pz"
+			_hy = mx.y + 1.0
+		_:
+			_mode = prefix + "nz"
+			_hy = mn.y
 
 
 func _rotate_p(p: Vector3, ang: float) -> Vector3:
@@ -156,18 +261,24 @@ func _rotate_p(p: Vector3, ang: float) -> Vector3:
 	var s := sin(ang)
 	var r: Vector3
 	match _mode:
-		"top_px", "bot_px", "slab_nx":
+		"top_px", "bot_px", "slab_nx", "xhi_px", "xlo_px":
 			r = p - Vector3(_hx, _hy, p.z)
 			return Vector3(_hx, _hy, p.z) + Vector3(r.x * c - r.y * s, r.x * s + r.y * c, 0.0)
-		"top_nx", "bot_nx", "slab_px":
+		"top_nx", "bot_nx", "slab_px", "xhi_nx", "xlo_nx":
 			r = p - Vector3(_hx, _hy, p.z)
 			return Vector3(_hx, _hy, p.z) + Vector3(r.x * c + r.y * s, -r.x * s + r.y * c, 0.0)
-		"top_pz", "bot_pz", "slab_nz":
+		"top_pz", "bot_pz", "slab_nz", "zhi_pz", "zlo_pz":
 			r = p - Vector3(p.x, _hy, _hz)
 			return Vector3(p.x, _hy, _hz) + Vector3(0.0, r.y * c - r.z * s, r.y * s + r.z * c)
-		"top_nz", "bot_nz", "slab_pz":
+		"top_nz", "bot_nz", "slab_pz", "zhi_nz", "zlo_nz":
 			r = p - Vector3(p.x, _hy, _hz)
 			return Vector3(p.x, _hy, _hz) + Vector3(0.0, r.y * c + r.z * s, -r.y * s + r.z * c)
+		"xhi_pz", "xlo_pz", "zhi_px", "zlo_px":
+			r = p - Vector3(_hx, p.y, _hz)
+			return Vector3(_hx, p.y, _hz) + Vector3(r.x * c - r.z * s, 0.0, r.x * s + r.z * c)
+		"xhi_nz", "xlo_nz", "zhi_nx", "zlo_nx":
+			r = p - Vector3(_hx, p.y, _hz)
+			return Vector3(_hx, p.y, _hz) + Vector3(r.x * c + r.z * s, 0.0, -r.x * s + r.z * c)
 		_:
 			return p
 
@@ -236,8 +347,8 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
 		_dragging = false
 	elif event is InputEventMouseMotion:
-		var motion := event as InputEventMouseMotion
-		var d: Vector2 = motion.position - _grab
+		var local_ev := make_input_local(event) as InputEventMouseMotion
+		var d: Vector2 = local_ev.position - _grab
 		if _mode == "" and d.length() > 12.0:
 			var side := "px"
 			if absf(d.x) >= absf(d.y):
@@ -245,8 +356,16 @@ func _input(event: InputEvent) -> void:
 			else:
 				side = "pz" if d.y > 0.0 else "nz"
 			if _is_cube():
-				var which := "bot" if _grab.y > _origin.y + 8.0 else "top"
-				_setup_layer(which, side)
+				var lx: float = _grab.x - _origin.x
+				var ly: float = _grab.y - _origin.y
+				if absf(ly) > absf(lx) * 1.12:
+					_setup_layer("bot" if ly > 8.0 else "top", side)
+				elif absf(lx) > absf(ly) * 1.12:
+					_setup_x_layer(lx > 0.0, side)
+				else:
+					_setup_z_layer(lx + ly > 0.0, side)
+				if _moving.is_empty():
+					_setup_layer("bot" if ly > 8.0 else "top", side)
 			else:
 				_setup_slab(side)
 			if _moving.is_empty():
@@ -259,17 +378,15 @@ func _input(event: InputEvent) -> void:
 
 func _progress_from(d: Vector2) -> float:
 	var span: float = maxf(72.0, _s * 5.0)
-	match _mode:
-		"top_px", "bot_px", "slab_px":
-			return clampf(d.x / span, 0.0, 1.0)
-		"top_nx", "bot_nx", "slab_nx":
-			return clampf(-d.x / span, 0.0, 1.0)
-		"top_pz", "bot_pz", "slab_pz":
-			return clampf(d.y / span, 0.0, 1.0)
-		"top_nz", "bot_nz", "slab_nz":
-			return clampf(-d.y / span, 0.0, 1.0)
-		_:
-			return clampf(d.length() / span, 0.0, 1.0)
+	if _mode.ends_with("px"):
+		return clampf(d.x / span, 0.0, 1.0)
+	if _mode.ends_with("nx"):
+		return clampf(-d.x / span, 0.0, 1.0)
+	if _mode.ends_with("pz"):
+		return clampf(d.y / span, 0.0, 1.0)
+	if _mode.ends_with("nz"):
+		return clampf(-d.y / span, 0.0, 1.0)
+	return clampf(d.length() / span, 0.0, 1.0)
 
 
 func _centroid() -> Vector3:

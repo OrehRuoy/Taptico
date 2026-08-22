@@ -1,17 +1,16 @@
-[gd_scene load_steps=13 format=3 uid="uid://main_scene"]
+[gd_scene load_steps=11 format=3 uid="uid://main_scene"]
 
 [ext_resource type="Script" path="res://scripts/ui/module_carousel.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/ui/paywall_overlay.gd" id="2"]
 [ext_resource type="Texture2D" path="res://assets/modules/ui_desk_bg.png" id="3"]
 [ext_resource type="Texture2D" path="res://assets/modules/ui_header_bar.png" id="4"]
 [ext_resource type="Texture2D" path="res://assets/modules/logo_wordmark.png" id="5"]
-[ext_resource type="Texture2D" path="res://assets/modules/logo_mark.png" id="6"]
-[ext_resource type="Texture2D" path="res://assets/modules/title_plate.png" id="7"]
 [ext_resource type="Texture2D" path="res://assets/modules/paywall_frame.png" id="8"]
 [ext_resource type="Texture2D" path="res://assets/modules/paywall_hero.png" id="9"]
 [ext_resource type="Texture2D" path="res://assets/modules/icon_settings_gear.png" id="10"]
 [ext_resource type="Texture2D" path="res://assets/modules/btn_premium.png" id="11"]
 [ext_resource type="Script" path="res://scripts/ui/settings_overlay.gd" id="13"]
+[ext_resource type="Script" path="res://scripts/ui/enjoy_overlay.gd" id="14"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -49,18 +48,6 @@ anchors_preset = 10
 anchor_right = 1.0
 offset_top = 8.0
 offset_bottom = 64.0
-mouse_filter = 2
-
-[node name="LogoMark" type="TextureRect" parent="Header"]
-visible = false
-layout_mode = 1
-offset_left = 8.0
-offset_top = 8.0
-offset_right = 44.0
-offset_bottom = 44.0
-texture = ExtResource("6")
-expand_mode = 1
-stretch_mode = 5
 mouse_filter = 2
 
 [node name="Logo" type="TextureRect" parent="Header"]
@@ -108,20 +95,6 @@ offset_top = 70.0
 offset_bottom = 136.0
 mouse_filter = 0
 
-[node name="TitlePlate" type="TextureRect" parent="TitleBand"]
-visible = false
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_left = 10.0
-offset_top = 6.0
-offset_right = -10.0
-offset_bottom = 74.0
-texture = ExtResource("7")
-expand_mode = 1
-stretch_mode = 6
-mouse_filter = 2
-
 [node name="TitleLabel" type="Label" parent="TitleBand"]
 layout_mode = 1
 anchors_preset = 10
@@ -165,7 +138,7 @@ theme_override_colors/font_color = Color(0.72, 0.74, 0.77, 1)
 theme_override_font_sizes/font_size = 12
 horizontal_alignment = 1
 vertical_alignment = 1
-autowrap_mode = 0
+autowrap_mode = 3
 mouse_filter = 2
 text = "Drag the dial."
 
@@ -369,4 +342,15 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 0
 script = ExtResource("13")
+
+[node name="Enjoy" type="Control" parent="."]
+visible = false
+z_index = 220
+z_as_relative = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 0
+script = ExtResource("14")
 

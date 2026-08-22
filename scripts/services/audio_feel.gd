@@ -50,6 +50,8 @@ func _build_streams() -> void:
 	_streams["click"] = _make_tone(2400.0, 0.018, 70.0, 0.62)
 	_streams["snap"] = _make_tone(1550.0, 0.028, 62.0, 0.58)
 	_streams["pop"] = _make_tone(980.0, 0.05, 36.0, 0.5)
+	_streams["pen_click"] = _make_pen_click()
+	_streams["squelch"] = _make_squelch()
 
 
 func _make_tone(freq: float, seconds: float, decay: float, amp: float) -> AudioStreamWAV:
@@ -72,6 +74,35 @@ func _make_tone(freq: float, seconds: float, decay: float, amp: float) -> AudioS
 	return stream
 
 
+func _make_pen_click() -> AudioStreamWAV:
+	var rate := 22050
+	var n := int(float(rate) * 0.052)
+	var data := PackedByteArray()
+	data.resize(n * 2)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 42
+	for i in n:
+		var t := float(i) / float(rate)
+		var s := 0.0
+		s += sin(TAU * 2550.0 * t) * exp(-t * 95.0) * 0.52
+		s += sin(TAU * 1120.0 * t) * exp(-t * 58.0) * 0.36
+		s += sin(TAU * 380.0 * t) * exp(-t * 36.0) * 0.24
+		s += (rng.randf() * 2.0 - 1.0) * exp(-t * 150.0) * 0.30
+		var t2 := t - 0.012
+		if t2 > 0.0:
+			s += sin(TAU * 1980.0 * t2) * exp(-t2 * 110.0) * 0.34
+			s += (rng.randf() * 2.0 - 1.0) * exp(-t2 * 170.0) * 0.14
+		var v := clampi(int(s * 32767.0), -32767, 32767)
+		data[i * 2] = v & 0xFF
+		data[i * 2 + 1] = (v >> 8) & 0xFF
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = rate
+	stream.stereo = false
+	stream.data = data
+	return stream
+
+
 func _make_thud() -> AudioStreamWAV:
 	var rate := 22050
 	var n := int(float(rate) * 0.06)
@@ -81,6 +112,33 @@ func _make_thud() -> AudioStreamWAV:
 		var t := float(i) / float(rate)
 		var env := exp(-t * 32.0)
 		var s := (sin(TAU * 130.0 * t) * 0.7 + sin(TAU * 280.0 * t) * 0.3) * env * 0.7
+		var v := clampi(int(s * 32767.0), -32767, 32767)
+		data[i * 2] = v & 0xFF
+		data[i * 2 + 1] = (v >> 8) & 0xFF
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = rate
+	stream.stereo = false
+	stream.data = data
+	return stream
+
+
+func _make_squelch() -> AudioStreamWAV:
+	var rate := 22050
+	var n := int(float(rate) * 0.09)
+	var data := PackedByteArray()
+	data.resize(n * 2)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 19
+	var brown := 0.0
+	for i in n:
+		var t := float(i) / float(rate)
+		brown += (rng.randf() * 2.0 - 1.0) * 0.08
+		brown *= 0.94
+		var env := exp(-t * 22.0)
+		var s := sin(TAU * 72.0 * t) * env * 0.38
+		s += sin(TAU * 118.0 * t) * exp(-t * 28.0) * 0.22
+		s += brown * env * 0.55
 		var v := clampi(int(s * 32767.0), -32767, 32767)
 		data[i * 2] = v & 0xFF
 		data[i * 2 + 1] = (v >> 8) & 0xFF
@@ -113,6 +171,11 @@ func play_thud() -> void:
 	_play("thud", randf_range(0.92, 1.08), 0.85)
 
 
+func play_pen_click(tip_out: bool = true) -> void:
+	var pitch: float = (1.06 if tip_out else 0.90) * randf_range(0.98, 1.02)
+	_play("pen_click", pitch, 1.0)
+
+
 func play_clack(gain: float = 0.55) -> void:
 	_play("clack", randf_range(0.88, 1.14), gain)
 
@@ -131,6 +194,10 @@ func play_snap(gain: float = 0.7) -> void:
 
 func play_pop(gain: float = 0.6) -> void:
 	_play("pop", randf_range(0.88, 1.18), gain)
+
+
+func play_squelch(gain: float = 0.3) -> void:
+	_play("squelch", randf_range(0.78, 1.16), gain)
 
 
 func set_pitch_from_velocity(velocity: float, max_velocity: float = 1200.0) -> void:

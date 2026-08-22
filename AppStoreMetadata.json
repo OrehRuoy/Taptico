@@ -1,7 +1,7 @@
 {
   "app": {
-    "title": "Taptico",
-    "subtitle": "Haptic Fidget & Focus Tool",
+    "title": "Taptico: Haptic Fidget Toys",
+    "subtitle": "ASMR Sensory Stress Relief",
     "bundle_id": "com.orehruoy.taptico",
     "sku": "taptico-ios-001",
     "primary_category": "Utilities",
@@ -9,9 +9,9 @@
     "age_rating": "4+",
     "price_tier": "free_with_iap"
   },
-  "keywords": "adhd,sensory,stress,relief,desk,tactile,taptic,dial,switch,gadget,quiet,calm,instrument,mindful",
-  "description": "Taptico is an ad-free haptic fidget and focus instrument for desk workers and anyone who benefits from tactile sensory input.\n\nSpin a precision combination lock with selection ticks. Snap heavy industrial toggle switches. Tilt your phone to roll metallic bearings in a sealed chamber. Modulate ambient noise on a theremin-style touch surface. Type on a mechanical key matrix with double-pulse haptics.\n\nFree forever: Combination Lock and Toggle Switches. Lifetime Unlock (priced by Apple for your region) opens all modules, premium metallic themes, and Desk Stand mode.\n\nNo ads. No accounts. No tracking. 100% on-device.",
-  "promotional_text": "Premium tactile fidget tools with CoreHaptics feedback. Two modules free, lifetime unlock for the rest.",
+  "keywords": "adhd,anxiety,cube,spinner,popit,calm,focus,desk,clicker,lock,taptic,antistress,pop,figet,relax,quiet",
+  "description": "Taptico is a quiet set of metallic fidget toys for iPhone — real clicks, pops, and slides from the Taptic Engine. No ads. No account. Three toys free forever.\n\nStay focused at a desk, wind down at night, or just enjoy oddly satisfying ASMR-style taps. Every module is a small gold-and-steel object you can actually feel.\n\nFREE FOREVER\n• Combination Lock — spin the dial and feel every detent\n• Toggle Switches — heavy industrial snaps\n• Magnetic Slider — drag until it snaps to either end\n\nLIFETIME UNLOCK\nOne purchase, priced by Apple for your region. Opens every module, gold themes, and Desk Stand mode:\n• Desk Cube — analog stick, gear, worry stone, clicker dots\n• Infinity Cube — fold eight cubes that stay in one piece\n• Clicker Pen — a retractable click with a writing tip\n• Metal Spinner, Zipper, and Dimple pop-it plate\n• Desk Putty — smear and flatten copper putty in a gold tin\n• Bearing Chamber, Key Matrix, and Ambient Pad\n\nBuilt as a sensory focus tool, not a medical app. No subscriptions. Restore Purchases is always on the paywall.",
+  "promotional_text": "Quiet metallic fidget toys with real iPhone haptics. Cube, spinner, putty, zipper, pop-it. Three free. No ads. One-time lifetime unlock.",
   "support_url": "https://github.com/orehruoy/taptico",
   "marketing_url": "https://github.com/orehruoy/taptico",
   "privacy_policy_url": "https://orehruoy.github.io/Taptico/privacy.html",
@@ -28,7 +28,14 @@
   "screenshots": {
     "iphone_6_7": [],
     "iphone_6_5": [],
-    "iphone_5_5": []
+    "iphone_5_5": [],
+    "caption_plan": [
+      "Fidget Toys with Real Haptics",
+      "ASMR Clicks. Sensory Pop.",
+      "Desk Cube, Spinner, Clicker Pen",
+      "Quiet Focus at Your Desk",
+      "No Ads. Lifetime Unlock."
+    ]
   },
-  "review_notes": "Taptico is a sensory focus tool, not a medical app. Two modules are free without IAP. The paywall always shows Restore Purchases. The displayed IAP price is the StoreKit localized SKProduct string (never hardcoded). No login required. Theremin audio uses AVAudioSessionCategoryPlayback so it continues with the hardware mute switch, as an instrument."
+  "review_notes": "Thank you for reviewing Taptico. Please use a physical iPhone (haptics and tilt do not work in Simulator).\n\nWHAT IT IS\nA 4+ sensory fidget / focus toy. It is not a medical, therapy, or diagnostic app and does not claim to treat ADHD, anxiety, or any condition. No user accounts, no chat, no user-generated content, no ads, no subscriptions.\n\nNO LOGIN\nLeave the demo account fields blank. The app is fully usable immediately.\n\nHOW TO REVIEW (about 1 minute)\n1. Launch the app. Swipe between modules on the home carousel.\n2. Free modules (no purchase): Combination Lock, Toggle Switches, Magnetic Slider. Please try at least one.\n3. Tap a premium module (for example Desk Cube, Spinner, or Clicker Pen). The paywall appears.\n4. Or tap Premium (crown / unlock control) at the top of the home screen.\n\nIN-APP PURCHASE\nProduct: Lifetime Unlock\nType: Non-consumable (one-time, not auto-renewing)\nProduct ID: com.orehruoy.taptico.lifetime\nPrice: StoreKit localized price from App Store Connect (not hardcoded)\nWhat it unlocks: remaining modules, premium themes, Desk Stand mode\nBuy: paywall button labeled Get Premium\nRestore Purchases: on the same paywall, labeled Restore. Guideline 3.1.1 is met; there is no other payment method.\nPlease attach this IAP to the binary when submitting.\n\nAUDIO\nAmbient Pad (premium) is a musical instrument-style pad. It uses AVAudioSessionCategoryPlayback so sound can continue when the hardware Ring/Silent switch is on, like a music app. Other modules use short UI clicks only.\n\nOTHER\nPrivacy policy: https://orehruoy.github.io/Taptico/privacy.html\nAnalytics: Firebase Analytics only (product usage). No advertising, no IDFA, no ATT prompt.\nOptional “Enjoying Taptico?” sheet may appear after three unique calendar days. Yes = standard SKStoreReviewController. No = optional feedback form (message + optional email). Users can dismiss it.\nSupport: support@orehruoy.com\n\nPlease approve Lifetime Unlock together with the app. Thank you."
 }

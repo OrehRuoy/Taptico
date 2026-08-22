@@ -1,6 +1,9 @@
 extends Control
 ## Sound, haptics, tilt/shake, and one-hand reach.
 
+signal preview_enjoy_requested
+signal simulate_enjoy_requested
+
 const FRAME_TEX := preload("res://assets/modules/paywall_frame.png")
 const TITLE_TEX := preload("res://assets/modules/title_settings.png")
 const CLOSE_TEX := preload("res://assets/modules/btn_close_x.png")
@@ -163,6 +166,37 @@ func _build() -> void:
 	hint.add_theme_font_size_override("font_size", 12)
 	hint.add_theme_color_override("font_color", Color(0.78, 0.80, 0.82))
 	_col.add_child(hint)
+
+	if EnjoyPrompt.debug_tools_enabled():
+		_col.add_child(_section_label("Debug"))
+		var preview := Button.new()
+		preview.text = "Preview enjoy prompt"
+		preview.custom_minimum_size = Vector2(0, 40)
+		preview.focus_mode = Control.FOCUS_NONE
+		preview.pressed.connect(_on_preview_enjoy)
+		_style_gold(preview)
+		_col.add_child(preview)
+		var simulate := Button.new()
+		simulate.text = "Simulate 3rd login day"
+		simulate.custom_minimum_size = Vector2(0, 40)
+		simulate.focus_mode = Control.FOCUS_NONE
+		simulate.pressed.connect(_on_simulate_enjoy)
+		_style_toggle(simulate)
+		_col.add_child(simulate)
+		var reset_enjoy := Button.new()
+		reset_enjoy.text = "Reset enjoy tracking"
+		reset_enjoy.custom_minimum_size = Vector2(0, 40)
+		reset_enjoy.focus_mode = Control.FOCUS_NONE
+		reset_enjoy.pressed.connect(_on_reset_enjoy)
+		_style_toggle(reset_enjoy)
+		_col.add_child(reset_enjoy)
+		var debug_hint := Label.new()
+		debug_hint.text = "Godot: F10 preview · F11 reset days · F12 simulate 3rd day · F9 reset unlock. Debug iOS builds show these buttons too."
+		debug_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		debug_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		debug_hint.add_theme_font_size_override("font_size", 11)
+		debug_hint.add_theme_color_override("font_color", Color(0.70, 0.72, 0.74))
+		_col.add_child(debug_hint)
 
 	_refresh()
 	_layout_card()
@@ -334,6 +368,22 @@ func show_settings() -> void:
 func hide_settings() -> void:
 	AppSettings.save()
 	hide()
+
+
+func _on_preview_enjoy() -> void:
+	hide_settings()
+	preview_enjoy_requested.emit()
+
+
+func _on_simulate_enjoy() -> void:
+	EnjoyPrompt.simulate_third_day()
+	hide_settings()
+	simulate_enjoy_requested.emit()
+
+
+func _on_reset_enjoy() -> void:
+	EnjoyPrompt.reset_for_debug()
+	AudioFeel.play_tick(0.8)
 
 
 func _on_dim(event: InputEvent) -> void:

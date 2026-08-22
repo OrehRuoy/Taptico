@@ -38,6 +38,9 @@ tools/*
 !tools/ios/
 !tools/ios/**
 
+# Leftover local npm (never ship)
+node_modules/
+
 # IDE
 .vscode/
 *.swp

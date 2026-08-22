@@ -1,15 +1,18 @@
 extends FidgetModule
 ## Closed zipper on top of an open zipper. Drag the puller; teeth mesh or separate.
 
-const TEETH := 24
+const TEETH := 32
 const CLOSED_PATH := "res://assets/modules/zipper_placket.png"
 const OPEN_PATH := "res://assets/modules/zipper_open.png"
 const PULL_TEX := preload("res://assets/modules/zipper_pull.png")
 const UNZIP := preload("res://shaders/unzip.gdshader")
+const DRAG_GEAR := 2.8
 
 var _open: float = 0.0
 var _dragging: bool = false
 var _last_tooth: int = -1
+var _drag_y0: float = 0.0
+var _open0: float = 0.0
 var _closed: Sprite2D
 var _opened: Sprite2D
 var _pull: Sprite2D
@@ -98,9 +101,10 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		var button := event as InputEventMouseButton
 		if button.pressed:
-			if button.position.distance_to(Vector2(_pull.position.x, _handle_y())) < 72.0 or _hit_placket(button.position):
+			if _hit_pull(button.position) or _hit_teeth(button.position):
 				_dragging = true
-				_set_from_y(button.position.y)
+				_drag_y0 = button.position.y
+				_open0 = _open
 				accept_event()
 		else:
 			_dragging = false
@@ -112,14 +116,15 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
 		_dragging = false
 	elif event is InputEventMouseMotion:
-		var motion := event as InputEventMouseMotion
-		_set_from_y(motion.position.y)
+		var local_ev := make_input_local(event) as InputEventMouseMotion
+		_set_from_drag(local_ev.position.y)
 		accept_event()
 
 
-func _set_from_y(y: float) -> void:
+func _set_from_drag(y: float) -> void:
 	var yr := _y_range()
-	_open = clampf(inverse_lerp(yr.x, yr.y, y - _pull.offset.y * _pull.scale.y), 0.0, 1.0)
+	var span: float = maxf(64.0, (yr.y - yr.x) * DRAG_GEAR)
+	_open = clampf(_open0 + (y - _drag_y0) / span, 0.0, 1.0)
 	var tooth := int(round(_open * float(TEETH)))
 	if tooth != _last_tooth:
 		_last_tooth = tooth
@@ -128,7 +133,17 @@ func _set_from_y(y: float) -> void:
 	_place_pull()
 
 
-func _hit_placket(pos: Vector2) -> bool:
-	var w := _closed_tex.get_width() * _closed.scale.x * 0.42
-	var h := _closed_tex.get_height() * _closed.scale.y
+func _hit_pull(pos: Vector2) -> bool:
+	var sc: float = _pull.scale.x
+	if sc < 0.001:
+		return false
+	var local: Vector2 = (pos - _pull.position) / sc - _pull.offset
+	var px: float = local.x + 512.0
+	var py: float = local.y + 512.0
+	return px >= 390.0 and px <= 640.0 and py >= 170.0 and py <= 850.0
+
+
+func _hit_teeth(pos: Vector2) -> bool:
+	var w: float = float(_closed_tex.get_width()) * _closed.scale.x * 0.11
+	var h: float = float(_closed_tex.get_height()) * _closed.scale.y
 	return Rect2(_closed.position - Vector2(w, h) * 0.5, Vector2(w, h)).has_point(pos)

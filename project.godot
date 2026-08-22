@@ -37,6 +37,7 @@ EntitlementStore="*res://scripts/services/entitlement_store.gd"
 ReachSettings="*res://scripts/services/reach_settings.gd"
 ModuleRegistry="*res://scripts/services/module_registry.gd"
 AnalyticsService="*res://scripts/autoload/analytics_service.gd"
+EnjoyPrompt="*res://scripts/services/enjoy_prompt.gd"
 
 [display]
 

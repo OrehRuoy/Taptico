@@ -13,9 +13,14 @@ func _ready() -> void:
 	_shader.code = """shader_type canvas_item;
 render_mode unshaded, blend_mix;
 uniform float cut_top = 0.0;
+uniform float cut_bottom = 0.0;
 void fragment() {
 	vec4 c = texture(TEXTURE, UV);
 	if (cut_top > 0.001 && UV.y < cut_top) {
+		COLOR = vec4(0.0, 0.0, 0.0, 0.0);
+		return;
+	}
+	if (cut_bottom > 0.001 && UV.y > 1.0 - cut_bottom) {
 		COLOR = vec4(0.0, 0.0, 0.0, 0.0);
 		return;
 	}
@@ -31,22 +36,27 @@ void fragment() {
 """
 
 
-func mat(cut_top: float = 0.0) -> ShaderMaterial:
+func mat(cut_top: float = 0.0, cut_bottom: float = 0.0) -> ShaderMaterial:
 	if _shader == null:
 		_ready()
 	var m := ShaderMaterial.new()
 	m.shader = _shader
 	if cut_top > 0.0001:
 		m.set_shader_parameter("cut_top", cut_top)
+	if cut_bottom > 0.0001:
+		m.set_shader_parameter("cut_bottom", cut_bottom)
 	return m
 
 
-func tex(src: Texture2D, cut_top: float = 0.0, punch_c: Vector2 = Vector2.ZERO, punch_r: float = 0.0, max_edge: int = 0) -> Texture2D:
+func tex(src: Texture2D, cut_top: float = 0.0, punch_c: Vector2 = Vector2.ZERO, punch_r: float = 0.0, max_edge: int = 0, cut_bottom: float = 0.0) -> Texture2D:
 	if src == null:
 		return null
-	var key := "v3_%s_%.3f_%.1f_%.1f_%.1f_%d" % [src.resource_path, cut_top, punch_c.x, punch_c.y, punch_r, max_edge]
+	var stamp := 0
+	if not src.resource_path.is_empty() and FileAccess.file_exists(src.resource_path):
+		stamp = int(FileAccess.get_modified_time(src.resource_path))
+	var key := "v4_%s_%d_%.3f_%.3f_%.1f_%.1f_%.1f_%d" % [src.resource_path, stamp, cut_top, cut_bottom, punch_c.x, punch_c.y, punch_r, max_edge]
 	if key.find("res://") < 0:
-		key = "v3_rid_%s_%.3f_%d" % [str(src.get_rid().get_id()), cut_top, max_edge]
+		key = "v4_rid_%s_%.3f_%.3f_%d" % [str(src.get_rid().get_id()), cut_top, cut_bottom, max_edge]
 	if _mem.has(key):
 		return _mem[key]
 	var disk := "user://keyed/%s.bin" % _safe_name(key)
@@ -64,7 +74,7 @@ func tex(src: Texture2D, cut_top: float = 0.0, punch_c: Vector2 = Vector2.ZERO, 
 		if big > max_edge:
 			var s: float = float(max_edge) / float(big)
 			img.resize(maxi(2, int(img.get_width() * s)), maxi(2, int(img.get_height() * s)), Image.INTERPOLATE_LANCZOS)
-	_key_image(img, cut_top, punch_c, punch_r)
+	_key_image(img, cut_top, punch_c, punch_r, cut_bottom)
 	_save_raw(disk, img)
 	img.generate_mipmaps()
 	var out := ImageTexture.create_from_image(img)
@@ -72,8 +82,8 @@ func tex(src: Texture2D, cut_top: float = 0.0, punch_c: Vector2 = Vector2.ZERO, 
 	return out
 
 
-func apply(node: CanvasItem, src: Texture2D, cut_top: float = 0.0, max_edge: int = 0) -> Texture2D:
-	var keyed := tex(src, cut_top, Vector2.ZERO, 0.0, max_edge)
+func apply(node: CanvasItem, src: Texture2D, cut_top: float = 0.0, max_edge: int = 0, cut_bottom: float = 0.0) -> Texture2D:
+	var keyed := tex(src, cut_top, Vector2.ZERO, 0.0, max_edge, cut_bottom)
 	if node is Sprite2D:
 		(node as Sprite2D).texture = keyed
 	elif node is TextureRect:
@@ -81,7 +91,7 @@ func apply(node: CanvasItem, src: Texture2D, cut_top: float = 0.0, max_edge: int
 	elif node is TextureButton:
 		(node as TextureButton).texture_normal = keyed
 	if keyed == src:
-		node.material = mat(cut_top)
+		node.material = mat(cut_top, cut_bottom)
 	else:
 		node.material = null
 	node.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
@@ -143,7 +153,7 @@ func _read_image(src: Texture2D) -> Image:
 	return img
 
 
-func _key_image(img: Image, cut_top: float, punch_c: Vector2, punch_r: float) -> void:
+func _key_image(img: Image, cut_top: float, punch_c: Vector2, punch_r: float, cut_bottom: float = 0.0) -> void:
 	var w := img.get_width()
 	var h := img.get_height()
 	var expected := w * h * 4
@@ -151,8 +161,12 @@ func _key_image(img: Image, cut_top: float, punch_c: Vector2, punch_r: float) ->
 	if data.size() < expected:
 		return
 	var cut_y := int(float(h) * cut_top)
+	var cut_y_bot := h
+	if cut_bottom > 0.0001:
+		cut_y_bot = int(float(h) * (1.0 - cut_bottom))
 	var r2: float = punch_r * punch_r
 	var do_punch: bool = punch_r > 1.0
+	var do_cut: bool = cut_y > 0 or cut_y_bot < h or do_punch
 	var i := 0
 	var px := 0
 	while i + 3 < expected:
@@ -160,9 +174,9 @@ func _key_image(img: Image, cut_top: float, punch_c: Vector2, punch_r: float) ->
 		var g: int = data[i + 1]
 		var b: int = data[i + 2]
 		var keyed: bool = r > 130 and b > 130 and g < 140 and (r + b - g - g) > 120
-		if cut_y > 0 or do_punch:
+		if do_cut:
 			var y: int = int(px / w)
-			if y < cut_y:
+			if y < cut_y or y >= cut_y_bot:
 				keyed = true
 			if do_punch:
 				var x: int = px % w

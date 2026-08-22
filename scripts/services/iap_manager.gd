@@ -119,6 +119,16 @@ func restore_purchases() -> void:
 	_await_timeout("Restore timed out. Check your connection and try again.")
 
 
+func request_review() -> void:
+	if _plugin != null and _plugin.has_method("request_review"):
+		_plugin.call("request_review")
+		return
+	if OS.has_feature("editor"):
+		print("[IAP] Apple’s in-app review sheet would open on iPhone.")
+		return
+	push_warning("StoreKit request_review is not in this build. Export a new iOS build after the plugin rebuilds.")
+
+
 func _begin_op() -> void:
 	_op_id += 1
 	_busy = true

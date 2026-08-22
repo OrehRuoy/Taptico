@@ -6,9 +6,26 @@ const ROWS := 5
 const PLATE_TEX := preload("res://assets/modules/dimple_plate.png")
 const UP_TEX := preload("res://assets/modules/dimple_up.png")
 const DOWN_TEX := preload("res://assets/modules/dimple_down.png")
-const HOLE_D := 180.0
+const HOLE_D := 156.0
 const TEX_W := 1024.0
 const TEX_H := 1536.0
+const UP_CONTENT := 931.0
+const DOWN_CONTENT := 554.0
+## Placed by hand in the editor.
+const HOLE_X := [
+	[199.0, 407.0, 615.0, 823.0],
+	[197.0, 408.0, 615.0, 822.0],
+	[195.0, 406.0, 616.0, 822.0],
+	[197.0, 407.0, 614.0, 822.0],
+	[198.0, 406.0, 614.0, 823.0],
+]
+const HOLE_Y := [
+	[269.0, 269.0, 270.0, 269.0],
+	[491.0, 492.0, 492.0, 493.0],
+	[711.0, 709.0, 710.0, 712.0],
+	[930.0, 930.0, 930.0, 932.0],
+	[1153.0, 1151.0, 1150.0, 1149.0],
+]
 
 var _popped: Array[bool] = []
 var _drag_pop: bool = false
@@ -69,30 +86,12 @@ func _layout() -> void:
 	_reset.add_theme_font_size_override("font_size", 14)
 
 
-func _hole_x(col: int) -> float:
-	match col:
-		0:
-			return 194.0
-		1:
-			return 406.0
-		2:
-			return 618.0
-		_:
-			return 830.0
+func _hole_x(col: int, row: int) -> float:
+	return float(HOLE_X[clampi(row, 0, ROWS - 1)][clampi(col, 0, COLS - 1)])
 
 
-func _hole_y(row: int) -> float:
-	match row:
-		0:
-			return 211.0
-		1:
-			return 427.0
-		2:
-			return 643.0
-		3:
-			return 859.0
-		_:
-			return 1075.0
+func _hole_y(col: int, row: int) -> float:
+	return float(HOLE_Y[clampi(row, 0, ROWS - 1)][clampi(col, 0, COLS - 1)])
 
 
 func _place_domes() -> void:
@@ -102,12 +101,12 @@ func _place_domes() -> void:
 			var i := row * COLS + col
 			var d := _domes[i]
 			var down: bool = _popped[i]
-			var content: float = 560.0 if down else 928.0
+			var content: float = DOWN_CONTENT if down else UP_CONTENT
 			d.scale = Vector2.ONE * ((HOLE_D * sc) / content)
-			d.offset = Vector2(-1.0, -19.0) if down else Vector2(-12.0, -23.0)
+			d.offset = Vector2.ZERO
 			d.position = _plate.position + Vector2(
-				(_hole_x(col) - TEX_W * 0.5) * sc,
-				(_hole_y(row) - TEX_H * 0.5) * sc
+				(_hole_x(col, row) - TEX_W * 0.5) * sc,
+				(_hole_y(col, row) - TEX_H * 0.5) * sc
 			)
 			d.texture = Chroma.tex(DOWN_TEX) if down else Chroma.tex(UP_TEX)
 
@@ -162,7 +161,7 @@ func _pop_at(pos: Vector2) -> void:
 func _index_at(pos: Vector2) -> int:
 	var sc: float = _plate.scale.x
 	var best := -1
-	var best_d := HOLE_D * sc * 0.55
+	var best_d := HOLE_D * sc * 0.62
 	for row in ROWS:
 		for col in COLS:
 			var i := row * COLS + col

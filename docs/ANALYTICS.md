@@ -30,6 +30,10 @@ Wait up to 24 hours for standard reports. Use **DebugView** for the same day.
 | `paywall_restore_tap` | Restore | — |
 | `purchase` | Lifetime unlock succeeds | `$4.99 USD`; user is then `paid` |
 | `reach_mode` | Settings reach change | `label` |
+| `enjoy_prompt_shown` | Enjoy prompt appears (3rd unique day) | — |
+| `enjoy_prompt_yes` | Tapped Yes | — |
+| `enjoy_prompt_no` | Tapped Not really | — |
+| `feedback_sent` | Feedback form submitted | Count only; no message text |
 
 `user_type` is also a **user property** (`paid` / `free`) and a default parameter on every event. After you register it, you can filter any report: paid people vs free people.
 
