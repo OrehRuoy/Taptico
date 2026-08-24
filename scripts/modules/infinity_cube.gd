@@ -307,7 +307,7 @@ func _commit_fold() -> void:
 	for i in 8:
 		_pos[i] -= Vector3(roundf(mn.x), roundf(mn.y), roundf(mn.z))
 	Haptics.medium()
-	AudioFeel.play_snap(0.72)
+	AudioFeel.play_fold(0.36)
 
 
 func _process(delta: float) -> void:

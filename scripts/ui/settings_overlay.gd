@@ -105,8 +105,10 @@ func _build() -> void:
 	_scroll = ScrollContainer.new()
 	_scroll.name = "Scroll"
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	_scroll.mouse_filter = Control.MOUSE_FILTER_STOP
 	_scroll.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	_scroll.scroll_deadzone = 8
 	_shell.add_child(_scroll)
 
 	_col = VBoxContainer.new()
@@ -302,7 +304,11 @@ func _layout_card() -> void:
 	_close.size = Vector2(close_s, close_s)
 	_scroll.position = Vector2(ix + 4.0, iy_t + header_h + 6.0)
 	_scroll.size = Vector2(inner_w - 8.0, body_h)
-	_scroll.scroll_vertical = 0
+	var bar := _scroll.get_v_scroll_bar()
+	if bar:
+		bar.modulate.a = 0.0
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bar.custom_minimum_size.x = 0
 
 
 func _refresh() -> void:
@@ -363,6 +369,7 @@ func show_settings() -> void:
 	_layout_card()
 	await get_tree().process_frame
 	_layout_card()
+	_scroll.scroll_vertical = 0
 
 
 func hide_settings() -> void:

@@ -74,11 +74,11 @@ func _process(delta: float) -> void:
 		var is_on := t > 0.82
 		if is_on and not was_on:
 			Haptics.heavy()
-			AudioFeel.play_thud()
+			AudioFeel.play_switch()
 			_states[i] = true
 		elif (not is_on) and was_on and t < 0.18:
 			Haptics.medium()
-			AudioFeel.play_thud()
+			AudioFeel.play_switch()
 			_states[i] = false
 
 

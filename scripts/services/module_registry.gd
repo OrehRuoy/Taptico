@@ -117,21 +117,32 @@ const MODULES: Array[Dictionary] = [
 		"name": "Desk Putty",
 		"short": "Putty",
 		"icon": "res://assets/modules/nav_putty.png",
-		"hint": "Drag to move. Two fingers stretch slowly. Pull a thin middle to snap it.",
+		"hint": "Drag to smear. Two fingers stretch. Reset kneads it back.",
 		"scene": "res://scenes/modules/putty/DeskPutty.tscn",
 		"premium": true,
+		"hidden": true, # Keep the scene; hide from nav until we ship it.
 	},
 ]
 
 
+func _shipped() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for mod in MODULES:
+		if bool(mod.get("hidden", false)):
+			continue
+		out.append(mod)
+	return out
+
+
 func get_module(index: int) -> Dictionary:
-	if index < 0 or index >= MODULES.size():
+	var shipped := _shipped()
+	if index < 0 or index >= shipped.size():
 		return {}
-	return MODULES[index]
+	return shipped[index]
 
 
 func get_module_count() -> int:
-	return MODULES.size()
+	return _shipped().size()
 
 
 func get_module_by_id(module_id: String) -> Dictionary:

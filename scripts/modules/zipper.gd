@@ -12,7 +12,9 @@ var _open: float = 0.0
 var _dragging: bool = false
 var _last_tooth: int = -1
 var _drag_y0: float = 0.0
+var _last_drag_y: float = 0.0
 var _open0: float = 0.0
+var _last_move_ms: int = 0
 var _closed: Sprite2D
 var _opened: Sprite2D
 var _pull: Sprite2D
@@ -53,6 +55,15 @@ func _ready() -> void:
 	add_child(_pull)
 	resized.connect(_layout)
 	_layout()
+
+
+func on_deactivate() -> void:
+	_stop_zip()
+
+
+func _stop_zip() -> void:
+	_dragging = false
+	AudioFeel.stop_held("zip")
 
 
 func _load_png(path: String) -> Texture2D:
@@ -104,32 +115,46 @@ func _gui_input(event: InputEvent) -> void:
 			if _hit_pull(button.position) or _hit_teeth(button.position):
 				_dragging = true
 				_drag_y0 = button.position.y
+				_last_drag_y = button.position.y
 				_open0 = _open
 				accept_event()
 		else:
-			_dragging = false
+			_stop_zip()
 
 
 func _input(event: InputEvent) -> void:
 	if not _active or not _dragging:
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
-		_dragging = false
+		_stop_zip()
 	elif event is InputEventMouseMotion:
 		var local_ev := make_input_local(event) as InputEventMouseMotion
 		_set_from_drag(local_ev.position.y)
 		accept_event()
 
 
+func _process(_delta: float) -> void:
+	if not _dragging:
+		return
+	if Time.get_ticks_msec() - _last_move_ms > 55:
+		AudioFeel.stop_held("zip")
+
+
 func _set_from_drag(y: float) -> void:
 	var yr := _y_range()
 	var span: float = maxf(64.0, (yr.y - yr.x) * DRAG_GEAR)
+	var prev := _open
 	_open = clampf(_open0 + (y - _drag_y0) / span, 0.0, 1.0)
+	_last_drag_y = y
+	var moved := absf(_open - prev)
 	var tooth := int(round(_open * float(TEETH)))
 	if tooth != _last_tooth:
 		_last_tooth = tooth
 		Haptics.selection()
-		AudioFeel.play_tick(lerpf(0.85, 1.2, _open))
+	if moved > 0.0012:
+		_last_move_ms = Time.get_ticks_msec()
+		var speed := clampf(moved * 28.0, 0.0, 1.0)
+		AudioFeel.play_zip(lerpf(0.90, 1.12, speed), lerpf(0.32, 0.55, speed))
 	_place_pull()
 
 

@@ -1,7 +1,7 @@
 {
   "app": {
     "title": "Taptico: Haptic Fidget Toys",
-    "subtitle": "ASMR Sensory Stress Relief",
+    "subtitle": "ASMR Metal Clicks. Quiet Focus",
     "bundle_id": "com.orehruoy.taptico",
     "sku": "taptico-ios-001",
     "primary_category": "Utilities",
@@ -9,9 +9,9 @@
     "age_rating": "4+",
     "price_tier": "free_with_iap"
   },
-  "keywords": "adhd,anxiety,cube,spinner,popit,calm,focus,desk,clicker,lock,taptic,antistress,pop,figet,relax,quiet",
-  "description": "Taptico is a quiet set of metallic fidget toys for iPhone — real clicks, pops, and slides from the Taptic Engine. No ads. No account. Three toys free forever.\n\nStay focused at a desk, wind down at night, or just enjoy oddly satisfying ASMR-style taps. Every module is a small gold-and-steel object you can actually feel.\n\nFREE FOREVER\n• Combination Lock — spin the dial and feel every detent\n• Toggle Switches — heavy industrial snaps\n• Magnetic Slider — drag until it snaps to either end\n\nLIFETIME UNLOCK\nOne purchase, priced by Apple for your region. Opens every module, gold themes, and Desk Stand mode:\n• Desk Cube — analog stick, gear, worry stone, clicker dots\n• Infinity Cube — fold eight cubes that stay in one piece\n• Clicker Pen — a retractable click with a writing tip\n• Metal Spinner, Zipper, and Dimple pop-it plate\n• Desk Putty — smear and flatten copper putty in a gold tin\n• Bearing Chamber, Key Matrix, and Ambient Pad\n\nBuilt as a sensory focus tool, not a medical app. No subscriptions. Restore Purchases is always on the paywall.",
-  "promotional_text": "Quiet metallic fidget toys with real iPhone haptics. Cube, spinner, putty, zipper, pop-it. Three free. No ads. One-time lifetime unlock.",
+  "keywords": "cube,spinner,popit,calm,clicker,taptic,sensory,slider,zipper,satisfying,figet,switch,relax,pop",
+  "description": "Taptico is a quiet set of metallic fidget toys for iPhone — real clicks, pops, and slides from the Taptic Engine. No ads. No account. Three toys free forever.\n\nStay focused at a desk, wind down at night, or just enjoy oddly satisfying ASMR-style taps. Every module is a small gold-and-steel object you can actually feel.\n\nFREE FOREVER\n• Combination Lock — spin the dial and feel every detent\n• Toggle Switches — heavy industrial snaps\n• Magnetic Slider — drag until it snaps to either end\n\nLIFETIME UNLOCK\nOne purchase, priced by Apple for your region. Opens every module, gold themes, and Desk Stand mode:\n• Desk Cube — analog stick, gear, worry stone, clicker dots\n• Infinity Cube — fold eight cubes that stay in one piece\n• Clicker Pen — a retractable click with a writing tip\n• Metal Spinner, Zipper, and Dimple pop-it plate\n• Bearing Chamber, Key Matrix, and Ambient Pad\n\nBuilt as a sensory focus tool, not a medical app. No subscriptions. Restore Purchases is always on the paywall.",
+  "promotional_text": "Quiet metallic fidget toys with real iPhone haptics. Cube, spinner, zipper, pop-it. Three free. No ads. One-time lifetime unlock.",
   "support_url": "https://github.com/orehruoy/taptico",
   "marketing_url": "https://github.com/orehruoy/taptico",
   "privacy_policy_url": "https://orehruoy.github.io/Taptico/privacy.html",

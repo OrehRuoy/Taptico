@@ -28,6 +28,7 @@ var _email: LineEdit
 var _device_lab: Label
 var _status: Label
 var _send: Button
+var _no_btn: Button
 var _http: HTTPRequest
 
 
@@ -107,46 +108,58 @@ func _build() -> void:
 
 	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	_scroll.follow_focus = true
+	_scroll.clip_contents = true
 	_scroll.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	_shell.add_child(_scroll)
 
 	_col = VBoxContainer.new()
 	_col.add_theme_constant_override("separation", 10)
 	_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_col.size_flags_vertical = Control.SIZE_FILL
 	_scroll.add_child(_col)
 
 	_ask_box = VBoxContainer.new()
 	_ask_box.add_theme_constant_override("separation", 12)
+	_ask_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var ask_sub := _muted_label("A quick yes or no helps a lot.")
 	_ask_box.add_child(ask_sub)
 	var yes := Button.new()
 	_plate_button(yes, "Yes")
 	yes.pressed.connect(_on_yes)
 	_ask_box.add_child(yes)
-	var no := Button.new()
-	no.text = "Not really"
-	_ghost_button(no)
-	no.custom_minimum_size = Vector2(0, 44)
-	no.pressed.connect(_on_no)
-	_ask_box.add_child(no)
+	_no_btn = Button.new()
+	_no_btn.text = "Not really"
+	_ghost_button(_no_btn)
+	_no_btn.custom_minimum_size = Vector2(216, 44)
+	_no_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_no_btn.pressed.connect(_on_no)
+	var no_wrap := CenterContainer.new()
+	no_wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	no_wrap.add_child(_no_btn)
+	_ask_box.add_child(no_wrap)
 	_col.add_child(_ask_box)
 
 	_form_box = VBoxContainer.new()
 	_form_box.add_theme_constant_override("separation", 8)
+	_form_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_form_box.add_child(_muted_label("What can we improve? Bugs, ideas, anything."))
 	_feedback = TextEdit.new()
 	_feedback.custom_minimum_size = Vector2(0, 118)
 	_feedback.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
 	_feedback.placeholder_text = "Your feedback"
+	_feedback.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_field(_feedback)
-	_form_box.add_child(_feedback)
+	_form_box.add_child(_lock_width(_feedback, 118))
 	_email = LineEdit.new()
 	_email.placeholder_text = "Email if you want a reply (optional)"
 	_email.custom_minimum_size = Vector2(0, 40)
 	_email.secret = false
+	_email.expand_to_text_length = false
+	_email.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_line(_email)
-	_form_box.add_child(_email)
+	_form_box.add_child(_lock_width(_email, 40))
 	_device_lab = _muted_label("")
 	_device_lab.add_theme_font_size_override("font_size", 11)
 	_form_box.add_child(_device_lab)
@@ -166,6 +179,7 @@ func _build() -> void:
 	_thanks_lab = Label.new()
 	_thanks_lab.text = "Thanks — we got it."
 	_thanks_lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_thanks_lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_thanks_lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_thanks_lab.add_theme_font_size_override("font_size", 18)
 	_thanks_lab.add_theme_color_override("font_color", Color(0.96, 0.88, 0.62))
@@ -324,37 +338,57 @@ func _email_ok(value: String) -> bool:
 	return at > 0 and at < value.length() - 3
 
 
+func _lock_width(control: Control, height: float) -> Control:
+	var box := Control.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.custom_minimum_size = Vector2(0, height)
+	box.clip_contents = true
+	box.add_child(control)
+	control.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	return box
+
+
 func _layout_card() -> void:
 	if _shell == null or size.x < 8.0:
 		return
 	var pad := 16.0
 	var shell_w := minf(size.x - pad * 2.0, 392.0)
 	var shell_h := minf(size.y - pad * 2.0, 680.0)
-	var ix := shell_w * 0.135
-	var iy_t := shell_h * 0.11
-	var iy_b := shell_h * 0.10
+	var ix := shell_w * 0.168
+	var iy_t := shell_h * 0.115
+	var iy_b := shell_h * 0.108
 	var inner_w := shell_w - ix * 2.0
 	var inner_h := shell_h - iy_t - iy_b
 	var header_h := 58.0
 	var close_s := 32.0
-	_col.custom_minimum_size = Vector2(inner_w - 6.0, 0.0)
+	_col.custom_minimum_size = Vector2(inner_w, 0.0)
 	var content_h := _col.get_combined_minimum_size().y + 12.0
 	var body_h := minf(content_h, inner_h - header_h - 8.0)
 	var needed_h := iy_t + header_h + 8.0 + body_h + iy_b
 	shell_h = minf(needed_h, size.y - pad * 2.0)
-	iy_t = shell_h * 0.11
-	iy_b = shell_h * 0.10
+	iy_t = shell_h * 0.115
+	iy_b = shell_h * 0.108
 	inner_w = shell_w - ix * 2.0
 	inner_h = shell_h - iy_t - iy_b
 	body_h = minf(content_h, inner_h - header_h - 8.0)
 	_shell.size = Vector2(shell_w, shell_h)
 	_shell.position = (size - _shell.size) * 0.5
 	_title.position = Vector2(ix, iy_t + 2.0)
-	_title.size = Vector2(inner_w - close_s - 6.0, header_h)
+	_title.size = Vector2(inner_w, header_h)
 	_close.position = Vector2(ix + inner_w - close_s - 2.0, iy_t + 6.0)
 	_close.size = Vector2(close_s, close_s)
-	_scroll.position = Vector2(ix + 4.0, iy_t + header_h + 6.0)
-	_scroll.size = Vector2(inner_w - 8.0, body_h)
+	_scroll.position = Vector2(ix, iy_t + header_h + 6.0)
+	_scroll.size = Vector2(inner_w, body_h)
+	_col.custom_minimum_size = Vector2(inner_w, 0.0)
+	_col.size.x = inner_w
+	_scroll.scroll_horizontal = 0
+	var bar := _scroll.get_v_scroll_bar()
+	if bar:
+		bar.modulate.a = 0.0
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bar.custom_minimum_size.x = 0
+	if _no_btn:
+		_no_btn.custom_minimum_size.x = inner_w * 0.72
 
 
 func _empty_tex_button(button: TextureButton) -> void:
@@ -418,7 +452,7 @@ func _ghost_button(button: Button) -> void:
 	button.add_theme_color_override("font_color", Color(0.90, 0.86, 0.76))
 	button.add_theme_font_size_override("font_size", 16)
 	button.focus_mode = Control.FOCUS_NONE
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 
 func _style_field(edit: TextEdit) -> void:
@@ -461,6 +495,7 @@ func _muted_label(text: String) -> Label:
 	lab.text = text
 	lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lab.add_theme_font_size_override("font_size", 13)
 	lab.add_theme_color_override("font_color", Color(0.78, 0.80, 0.82))
 	return lab

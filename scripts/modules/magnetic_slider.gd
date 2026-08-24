@@ -80,7 +80,7 @@ func _process(delta: float) -> void:
 		_last_end = end
 		_vel *= 0.2
 		Haptics.rigid()
-		AudioFeel.play_snap(0.85)
+		AudioFeel.play_tick(0.82)
 	_place_plate()
 
 

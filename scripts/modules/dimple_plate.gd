@@ -150,11 +150,12 @@ func _pop_at(pos: Vector2) -> void:
 	_stroke.append(i)
 	_popped[i] = not _popped[i]
 	if _popped[i]:
-		Haptics.impact(0.55)
-		AudioFeel.play_pop(0.75)
+		Haptics.soft()
+		Haptics.impact(0.20)
+		AudioFeel.play_pop(0.16)
 	else:
 		Haptics.soft()
-		AudioFeel.play_pop(0.4)
+		AudioFeel.play_pop(0.10)
 	_place_domes()
 
 
