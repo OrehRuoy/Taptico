@@ -5,6 +5,22 @@ extends Node
 const AMBIENT_BUS := "Ambient"
 const POOL := 10
 const AUDIO_DIR := "res://assets/audio"
+## Full res:// paths so Godot packs these into the IPA (constructed paths get stripped).
+const PACKED_WAVS: PackedStringArray = [
+	"res://assets/audio/thud.wav",
+	"res://assets/audio/switch.wav",
+	"res://assets/audio/clack.wav",
+	"res://assets/audio/key_soft.wav",
+	"res://assets/audio/key_click.wav",
+	"res://assets/audio/click.wav",
+	"res://assets/audio/snap.wav",
+	"res://assets/audio/pop.wav",
+	"res://assets/audio/pen_click.wav",
+	"res://assets/audio/zip.wav",
+	"res://assets/audio/fold.wav",
+	"res://assets/audio/rub.wav",
+	"res://assets/audio/squelch.wav",
+]
 
 var _pitch_effect: AudioEffectPitchShift
 var _lowpass_effect: AudioEffectLowPassFilter
@@ -15,6 +31,9 @@ var _next: int = 0
 
 
 func _ready() -> void:
+	for path in PACKED_WAVS:
+		if not ResourceLoader.exists(path):
+			push_warning("Taptico audio missing from export: %s" % path)
 	_setup_ambient_bus()
 	_build_streams()
 	for i in POOL:
@@ -63,9 +82,14 @@ func _build_streams() -> void:
 
 
 func _sample_or(file_name: String, fallback: Callable) -> AudioStream:
-	var loaded := _load_wav("%s/%s" % [AUDIO_DIR, file_name])
-	if loaded:
-		return loaded
+	var path := "%s/%s" % [AUDIO_DIR, file_name]
+	if ResourceLoader.exists(path):
+		var res := ResourceLoader.load(path)
+		if res is AudioStream:
+			return res
+	var parsed := _load_wav(path)
+	if parsed:
+		return parsed
 	return fallback.call()
 
 
@@ -75,8 +99,10 @@ func _loop_wav(stream: AudioStream) -> AudioStream:
 		return stream
 	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	wav.loop_begin = 0
-	var bytes_per_frame := 4 if wav.stereo else 2
-	var frames := int(wav.data.size() / bytes_per_frame)
+	var frames := int(round(wav.get_length() * float(wav.mix_rate)))
+	if wav.format == AudioStreamWAV.FORMAT_16_BITS:
+		var bytes_per_frame := 4 if wav.stereo else 2
+		frames = maxi(1, int(wav.data.size() / bytes_per_frame))
 	wav.loop_end = maxi(1, frames - 1)
 	return wav
 
