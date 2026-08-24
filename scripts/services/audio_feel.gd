@@ -5,22 +5,17 @@ extends Node
 const AMBIENT_BUS := "Ambient"
 const POOL := 10
 const AUDIO_DIR := "res://assets/audio"
-## Full res:// paths so Godot packs these into the IPA (constructed paths get stripped).
-const PACKED_WAVS: PackedStringArray = [
-	"res://assets/audio/thud.wav",
-	"res://assets/audio/switch.wav",
-	"res://assets/audio/clack.wav",
-	"res://assets/audio/key_soft.wav",
-	"res://assets/audio/key_click.wav",
-	"res://assets/audio/click.wav",
-	"res://assets/audio/snap.wav",
-	"res://assets/audio/pop.wav",
-	"res://assets/audio/pen_click.wav",
-	"res://assets/audio/zip.wav",
-	"res://assets/audio/fold.wav",
-	"res://assets/audio/rub.wav",
-	"res://assets/audio/squelch.wav",
-]
+const WAV_THUD := preload("res://assets/audio/thud.wav")
+const WAV_SWITCH := preload("res://assets/audio/switch.wav")
+const WAV_CLACK := preload("res://assets/audio/clack.wav")
+const WAV_KEY_SOFT := preload("res://assets/audio/key_soft.wav")
+const WAV_KEY_CLICK := preload("res://assets/audio/key_click.wav")
+const WAV_CLICK := preload("res://assets/audio/click.wav")
+const WAV_POP := preload("res://assets/audio/pop.wav")
+const WAV_PEN := preload("res://assets/audio/pen_click.wav")
+const WAV_ZIP := preload("res://assets/audio/zip.wav")
+const WAV_FOLD := preload("res://assets/audio/fold.wav")
+const WAV_RUB := preload("res://assets/audio/rub.wav")
 
 var _pitch_effect: AudioEffectPitchShift
 var _lowpass_effect: AudioEffectLowPassFilter
@@ -31,9 +26,6 @@ var _next: int = 0
 
 
 func _ready() -> void:
-	for path in PACKED_WAVS:
-		if not ResourceLoader.exists(path):
-			push_warning("Taptico audio missing from export: %s" % path)
 	_setup_ambient_bus()
 	_build_streams()
 	for i in POOL:
@@ -82,15 +74,42 @@ func _build_streams() -> void:
 
 
 func _sample_or(file_name: String, fallback: Callable) -> AudioStream:
+	var packed := _packed_wav(file_name)
+	if packed:
+		return packed
 	var path := "%s/%s" % [AUDIO_DIR, file_name]
-	if ResourceLoader.exists(path):
-		var res := ResourceLoader.load(path)
-		if res is AudioStream:
-			return res
 	var parsed := _load_wav(path)
 	if parsed:
 		return parsed
 	return fallback.call()
+
+
+func _packed_wav(file_name: String) -> AudioStream:
+	match file_name:
+		"thud.wav":
+			return WAV_THUD
+		"switch.wav":
+			return WAV_SWITCH
+		"clack.wav":
+			return WAV_CLACK
+		"key_soft.wav":
+			return WAV_KEY_SOFT
+		"key_click.wav":
+			return WAV_KEY_CLICK
+		"click.wav":
+			return WAV_CLICK
+		"pop.wav":
+			return WAV_POP
+		"pen_click.wav":
+			return WAV_PEN
+		"zip.wav":
+			return WAV_ZIP
+		"fold.wav":
+			return WAV_FOLD
+		"rub.wav":
+			return WAV_RUB
+		_:
+			return null
 
 
 func _loop_wav(stream: AudioStream) -> AudioStream:
