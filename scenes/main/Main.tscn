@@ -272,8 +272,7 @@ theme_override_font_sizes/font_size = 20
 [node name="Features" type="Label" parent="Paywall/Panel/VBox"]
 visible = false
 layout_mode = 2
-text = "Unlock Bearings, Pad, and Keys.
-Desk Stand stays on for life."
+text = "The rest of the desk, plus Desk Stand."
 horizontal_alignment = 1
 autowrap_mode = 3
 theme_override_colors/font_color = Color(0.82, 0.84, 0.86, 1)
@@ -294,7 +293,7 @@ horizontal_alignment = 1
 
 [node name="PriceLabel" type="Label" parent="Paywall/Panel/VBox"]
 layout_mode = 2
-text = "$4.99"
+text = ""
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.90, 0.82, 0.58, 1)
 theme_override_font_sizes/font_size = 20

@@ -95,7 +95,14 @@ func _near_dial(pos: Vector2) -> bool:
 
 func _check_detent() -> void:
 	var detent := int(floor((_angle / DETENT_ANGLE) + 0.5))
-	if detent != _last_detent:
-		_last_detent = detent
+	if detent == _last_detent:
+		return
+	var step := 1 if detent > _last_detent else -1
+	var guard := 0
+	while _last_detent != detent and guard < 6:
+		_last_detent += step
+		guard += 1
 		Haptics.selection()
 		AudioFeel.play_tick(randf_range(0.96, 1.08))
+		UnlockNudge.note_lock()
+	_last_detent = detent

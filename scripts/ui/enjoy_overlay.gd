@@ -63,9 +63,6 @@ func present(preview: bool = false) -> void:
 	_layout_card()
 	await get_tree().process_frame
 	_layout_card()
-	if not preview:
-		AnalyticsService.log_event("enjoy_prompt_shown")
-		AnalyticsService.log_screen("enjoy_prompt")
 
 
 func _build() -> void:
@@ -206,7 +203,6 @@ func _show_page() -> void:
 func _on_yes() -> void:
 	AudioFeel.play_tick(1.0)
 	if not _preview:
-		AnalyticsService.log_event("enjoy_prompt_yes")
 		EnjoyPrompt.mark_completed()
 	if OS.has_feature("editor"):
 		_thanks_lab.text = "On iPhone this opens Apple’s review sheet.\nApple may hide it if you’ve already seen it recently."
@@ -222,8 +218,6 @@ func _on_yes() -> void:
 
 func _on_no() -> void:
 	AudioFeel.play_tick(0.85)
-	if not _preview:
-		AnalyticsService.log_event("enjoy_prompt_no")
 	_page = "form"
 	_show_page()
 	_feedback.grab_focus()
@@ -294,7 +288,6 @@ func _on_http_done(result: int, response_code: int, _headers: PackedStringArray,
 		_show_page()
 		return
 	if not _preview:
-		AnalyticsService.log_event("feedback_sent")
 		EnjoyPrompt.mark_completed()
 	_thanks_lab.text = "Thanks — we got it."
 	_page = "thanks"

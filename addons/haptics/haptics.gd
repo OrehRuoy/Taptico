@@ -27,18 +27,18 @@ func _call_native(method: String, args: Array = []) -> Variant:
 
 
 func _haptic_ok() -> bool:
-	return AppSettings.haptic_strength > 0.04
+	return AppSettings.effective_haptic_strength() > 0.04
 
 
 func _scaled(intensity: float) -> float:
-	return clampf(intensity * AppSettings.haptic_strength, 0.0, 1.0)
+	return clampf(intensity * AppSettings.effective_haptic_strength(), 0.0, 1.0)
 
 
 func light() -> void:
 	if not _haptic_ok():
 		return
 	if _plugin:
-		if AppSettings.haptic_strength < 0.45:
+		if AppSettings.effective_haptic_strength() < 0.45:
 			_call_native("soft")
 		else:
 			_call_native("light")
@@ -50,7 +50,7 @@ func medium() -> void:
 	if not _haptic_ok():
 		return
 	if _plugin:
-		if AppSettings.haptic_strength < 0.4:
+		if AppSettings.effective_haptic_strength() < 0.4:
 			_call_native("light")
 		else:
 			_call_native("medium")
@@ -60,7 +60,7 @@ func heavy() -> void:
 	if not _haptic_ok():
 		return
 	if _plugin:
-		if AppSettings.haptic_strength < 0.35:
+		if AppSettings.effective_haptic_strength() < 0.35:
 			_call_native("medium")
 		else:
 			_call_native("heavy")

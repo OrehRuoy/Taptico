@@ -4,6 +4,7 @@ const GOLD := Color(0.84, 0.70, 0.44)
 const MUTED := Color(0.70, 0.73, 0.76)
 const INK := Color(0.07, 0.07, 0.08)
 const SWIPE_PX := 64.0
+const _NUDGE_SHEET := preload("res://scripts/ui/unlock_nudge_sheet.gd")
 
 var _icon_size := 58.0
 
@@ -32,6 +33,8 @@ var _nav_touch := Vector2.ZERO
 var _nav_scroll0 := 0
 var _analytics_id: String = ""
 var _play_started_ms: int = 0
+var _nudge_sheet: Control
+var _nudge_pending: bool = false
 
 
 func _ready() -> void:
@@ -63,6 +66,13 @@ func _ready() -> void:
 	nav_bar.scroll_deadzone = 16
 	nav_bar.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	chip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_nudge_sheet = _NUDGE_SHEET.new()
+	add_child(_nudge_sheet)
+	_nudge_sheet.connect("see_unlock", _on_nudge_unlock)
+	UnlockNudge.offer_ready.connect(_on_offer_ready)
+	paywall.visibility_changed.connect(_try_nudge)
+	settings_overlay.visibility_changed.connect(_try_nudge)
+	enjoy_overlay.visibility_changed.connect(_try_nudge)
 	call_deferred("_maybe_show_enjoy")
 
 
@@ -369,18 +379,32 @@ func _track_fidget(mod: Dictionary) -> void:
 	_flush_play_time()
 	_analytics_id = id
 	_play_started_ms = Time.get_ticks_msec()
-	AnalyticsService.log_screen(id)
-	AnalyticsService.log_fidget_open(mod)
 
 
 func _flush_play_time() -> void:
-	if _analytics_id.is_empty() or _play_started_ms <= 0:
-		return
-	var seconds := int((Time.get_ticks_msec() - _play_started_ms) / 1000.0)
-	var prev := ModuleRegistry.get_module_by_id(_analytics_id)
-	if not prev.is_empty():
-		AnalyticsService.log_fidget_play(prev, seconds)
 	_play_started_ms = 0
+
+
+func _on_offer_ready() -> void:
+	_nudge_pending = true
+	_try_nudge()
+
+
+func _try_nudge() -> void:
+	if not _nudge_pending or _nudge_sheet == null:
+		return
+	if not UnlockNudge.should_offer():
+		_nudge_pending = false
+		return
+	if paywall.visible or settings_overlay.visible or enjoy_overlay.visible or _nudge_sheet.visible:
+		return
+	_nudge_pending = false
+	_nudge_sheet.present()
+	UnlockNudge.mark_shown()
+
+
+func _on_nudge_unlock() -> void:
+	_present_paywall("Lifetime")
 
 
 func _notification(what: int) -> void:
@@ -438,8 +462,6 @@ func _present_paywall(module_name: String = "") -> void:
 	paywall.z_as_relative = false
 	paywall.move_to_front()
 	paywall.show_paywall(module_name)
-	AnalyticsService.log_screen("paywall")
-	AnalyticsService.log_paywall(module_name)
 
 
 func _on_unlock_pressed() -> void:
@@ -478,7 +500,7 @@ func _maybe_show_enjoy() -> void:
 	await get_tree().create_timer(1.8).timeout
 	if not is_inside_tree():
 		return
-	if paywall.visible or settings_overlay.visible or enjoy_overlay.visible:
+	if paywall.visible or settings_overlay.visible or enjoy_overlay.visible or (_nudge_sheet and _nudge_sheet.visible):
 		return
 	if DeviceService.desk_stand_active:
 		return

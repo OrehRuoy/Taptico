@@ -11,7 +11,7 @@ macOS minutes cost **10×**. Workflows are **manual only** (`workflow_dispatch`)
 
 ## Required secrets
 
-See [`GITHUB_SECRETS.md`](GITHUB_SECRETS.md). Reuse StimPad's Distribution cert + Apple ID app-specific password. Taptico needs its **own** profile + Firebase plist.
+See [`GITHUB_SECRETS.md`](GITHUB_SECRETS.md). Reuse StimPad's Distribution cert + Apple ID app-specific password. Taptico needs its **own** provisioning profile. 1.0.1 does not install Firebase.
 
 Committed in `export_presets.cfg`:
 
@@ -19,16 +19,12 @@ Committed in `export_presets.cfg`:
 - Profile UUID `9c3a3817-9e8c-4cb3-8f83-f19ec86b2a5b`
 - Preset name `iOS (TestFlight IPA)`
 - `plugins/Haptics=true` and `plugins/StoreKit=true` (not `plugins/exported=...`)
-- `export_project_only=true` (Firebase: archive in Xcode after `-force_load` inject)
+- `export_project_only=true`
+- `application/short_version` is **1.0.1** (CI still replaces `application/version` with the GitHub run number)
 
-## Firebase / Analytics
+## Analytics
 
-- Firebase project: `taptico-9bbe6`
-- iOS app: `com.orehruoy.taptico`
-- CI installs **GodotApplePluginsRuntime** first (`SwiftGodotRuntime.xcframework`), then GodotFirebaseiOS **0.5.6** and the Circuit Sort / StimPad export-plugin patch
-- Without SwiftGodotRuntime the TestFlight app closes on launch (same StimPad / W4D miss)
-- `STRIP_INSTALLED_PRODUCT=NO` on archive — otherwise TestFlight **crashes on launch**
-- Analytics bind is delayed 10s on iOS (same StimPad cold-start fix)
+1.0.1 does not link Firebase. Archive with `STRIP_INSTALLED_PRODUCT=YES`. `scripts/verify_ios_ipa_plugins.sh` fails if Firebase symbols or `GoogleService-Info.plist` are in the IPA.
 
 Do **not** copy `ios/AppIcon.appiconset/Contents.json` over the Godot export. That stub is 1024-only and App Store Connect rejects the IPA (missing 120 / 152 / 167). CI runs `scripts/overlay_ios_app_icons.sh` instead.
 

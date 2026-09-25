@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Taptico"
 config/description="Haptic Fidget & Focus Tool"
-config/version="1.0.0"
+config/version="1.0.1"
 run/main_scene="res://scenes/main/Main.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 boot_splash/bg_color=Color(0.0627451, 0.0705882, 0.0941176, 1)
@@ -36,8 +36,8 @@ AudioFeel="*res://scripts/services/audio_feel.gd"
 EntitlementStore="*res://scripts/services/entitlement_store.gd"
 ReachSettings="*res://scripts/services/reach_settings.gd"
 ModuleRegistry="*res://scripts/services/module_registry.gd"
-AnalyticsService="*res://scripts/autoload/analytics_service.gd"
 EnjoyPrompt="*res://scripts/services/enjoy_prompt.gd"
+UnlockNudge="*res://scripts/services/unlock_nudge.gd"
 
 [display]
 
@@ -50,7 +50,7 @@ window/handheld/orientation=5
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/GodotFirebaseiOS/plugin.cfg")
+enabled=PackedStringArray()
 
 [input_devices]
 

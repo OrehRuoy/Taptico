@@ -13,7 +13,8 @@ Repository secrets are never visible to visitors. Public source does not expose 
 | `APPLE_PROVISIONING_PROFILE_BASE64` | Base64 of **Taptico** `Taptico.mobileprovision` | **No** — this app only |
 | `APPLE_ID_USERNAME` | Apple ID email | **Yes** |
 | `APPLE_ID_PASSWORD` | App-specific password (not your Apple login) | **Yes** |
-| `GOOGLE_SERVICE_INFO_PLIST_BASE64` | Base64 of Taptico `GoogleService-Info.plist` | **No** — Firebase project `taptico-9bbe6` |
+
+`GOOGLE_SERVICE_INFO_PLIST_BASE64` is **not** required for 1.0.1. The iOS workflow no longer installs Firebase.
 
 Do **not** use App Store Connect API key `8HBG7N4A27` for this workflow. Working apps upload with `xcrun altool` + the Apple ID + app-specific password.
 

@@ -71,16 +71,21 @@ func _process(delta: float) -> void:
 	if not _active or _dragging:
 		return
 	var target := 0.0 if _t < 0.5 else 1.0
-	var dist := target - _t
-	_vel += dist * 18.0 * delta
-	_vel *= exp(-9.0 * delta)
-	_t = clampf(_t + _vel * delta, 0.0, 1.0)
+	if AppSettings.reduce_motion():
+		_vel = 0.0
+		_t = target
+	else:
+		var dist := target - _t
+		_vel += dist * 18.0 * delta
+		_vel *= exp(-9.0 * delta)
+		_t = clampf(_t + _vel * delta, 0.0, 1.0)
 	var end := 0 if _t < 0.08 else (1 if _t > 0.92 else -1)
 	if end != -1 and end != _last_end:
 		_last_end = end
 		_vel *= 0.2
 		Haptics.rigid()
 		AudioFeel.play_tick(0.82)
+		UnlockNudge.note_slider()
 	_place_plate()
 
 
@@ -122,7 +127,9 @@ func _release() -> void:
 	if not _dragging:
 		return
 	_dragging = false
-	_last_end = -1
+	# Already home: the drag detent already clicked. Don't also fire the end snap.
+	var end := 0 if _t < 0.08 else (1 if _t > 0.92 else -1)
+	_last_end = end
 
 
 func _hit(pos: Vector2) -> bool:

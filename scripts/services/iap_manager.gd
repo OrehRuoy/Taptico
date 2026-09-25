@@ -72,7 +72,10 @@ func is_price_ready() -> bool:
 func get_price_display() -> String:
 	if not _price_display.is_empty():
 		return _price_display
-	return FALLBACK_PRICE
+	# Editor and desktop have no StoreKit. A device build waits for the localized price.
+	if OS.get_name() != "iOS":
+		return FALLBACK_PRICE
+	return ""
 
 
 func can_purchase() -> bool:

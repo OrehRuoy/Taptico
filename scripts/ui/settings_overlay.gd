@@ -8,7 +8,6 @@ const FRAME_TEX := preload("res://assets/modules/paywall_frame.png")
 const TITLE_TEX := preload("res://assets/modules/title_settings.png")
 const CLOSE_TEX := preload("res://assets/modules/btn_close_x.png")
 
-var _sound_btn: Button
 var _vol: HSlider
 var _haptic: HSlider
 var _shake: HSlider
@@ -16,6 +15,7 @@ var _vol_lab: Label
 var _haptic_lab: Label
 var _shake_lab: Label
 var _reach_buttons: Dictionary = {}
+var _feel_buttons: Dictionary = {}
 var _opened_at_ms: int = 0
 var _shell: Control
 var _frame: TextureRect
@@ -137,11 +137,26 @@ func _build() -> void:
 		_reach_buttons[int(item[0])] = btn
 	_col.add_child(reach_row)
 
-	_sound_btn = Button.new()
-	_sound_btn.custom_minimum_size = Vector2(0, 40)
-	_sound_btn.pressed.connect(_toggle_sound)
-	_style_toggle(_sound_btn)
-	_col.add_child(_sound_btn)
+	_col.add_child(_section_label("Sound and haptics"))
+	var feel_row := HBoxContainer.new()
+	feel_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	feel_row.add_theme_constant_override("separation", 8)
+	feel_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var feel_modes := [
+		[AppSettings.OutputMode.HEADPHONES, "Headphones"],
+		[AppSettings.OutputMode.HAPTICS, "Haptics only"],
+		[AppSettings.OutputMode.BOTH, "Both"],
+	]
+	for item in feel_modes:
+		var feel_btn := Button.new()
+		feel_btn.text = str(item[1])
+		feel_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		feel_btn.custom_minimum_size = Vector2(0, 40)
+		feel_btn.focus_mode = Control.FOCUS_NONE
+		feel_btn.pressed.connect(_on_output_selected.bind(int(item[0])))
+		feel_row.add_child(feel_btn)
+		_feel_buttons[int(item[0])] = feel_btn
+	_col.add_child(feel_row)
 
 	_vol_lab = _section_label("Volume")
 	_col.add_child(_vol_lab)
@@ -162,7 +177,7 @@ func _build() -> void:
 	_col.add_child(_shake)
 
 	var hint := Label.new()
-	hint.text = "Shake / tilt moves the bearings. Sound plays with every fidget."
+	hint.text = "Headphones is sound only. Haptics only is silent. Both plays sound and haptics. Shake / tilt moves the bearings."
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.add_theme_font_size_override("font_size", 12)
@@ -312,23 +327,33 @@ func _layout_card() -> void:
 
 
 func _refresh() -> void:
-	if _sound_btn == null:
+	if _vol == null:
 		return
-	_sound_btn.text = "Sound: On" if AppSettings.sound_on else "Sound: Off"
-	_vol.editable = AppSettings.sound_on
+	_vol.editable = AppSettings.output_mode != AppSettings.OutputMode.HAPTICS
 	_vol.set_value_no_signal(AppSettings.sound_volume * 100.0)
 	_vol_lab.text = "Volume  %d%%" % int(round(AppSettings.sound_volume * 100.0))
+	_haptic.editable = AppSettings.output_mode != AppSettings.OutputMode.HEADPHONES
 	_haptic.set_value_no_signal(AppSettings.haptic_strength * 100.0)
-	_haptic_lab.text = "Haptics  %s" % AppSettings.haptic_label()
+	if AppSettings.output_mode == AppSettings.OutputMode.HEADPHONES:
+		_haptic_lab.text = "Haptics  Off"
+	else:
+		_haptic_lab.text = "Haptics  %s" % AppSettings.haptic_label()
 	_shake.set_value_no_signal(AppSettings.shake_strength * 100.0)
 	_shake_lab.text = "Shake / tilt  %s" % AppSettings.shake_label()
 	_refresh_reach()
+	_refresh_feel()
 
 
 func _on_reach_selected(mode: int) -> void:
 	ReachSettings.set_mode(mode)
 	_refresh_reach()
-	AnalyticsService.log_event("reach_mode", {"label": ReachSettings.label()})
+
+
+func _on_output_selected(mode: int) -> void:
+	AppSettings.set_output_mode(mode)
+	if AppSettings.output_mode != AppSettings.OutputMode.HAPTICS:
+		AudioFeel.play_tick(1.0)
+	_refresh()
 
 
 func _refresh_reach() -> void:
@@ -355,10 +380,28 @@ func _refresh_reach() -> void:
 		btn.add_theme_stylebox_override("pressed", box)
 
 
-func _toggle_sound() -> void:
-	AppSettings.set_sound_on(not AppSettings.sound_on)
-	if AppSettings.sound_on:
-		AudioFeel.play_tick(1.0)
+func _refresh_feel() -> void:
+	for mode in _feel_buttons:
+		var btn: Button = _feel_buttons[mode]
+		var on := int(mode) == AppSettings.output_mode
+		var box := StyleBoxFlat.new()
+		box.set_corner_radius_all(14)
+		box.border_width_left = 1
+		box.border_width_top = 1
+		box.border_width_right = 1
+		box.border_width_bottom = 1
+		if on:
+			box.bg_color = Color(0.72, 0.58, 0.32, 1)
+			box.border_color = Color(0.93, 0.82, 0.55, 0.95)
+			btn.add_theme_color_override("font_color", Color(0.98, 0.93, 0.82))
+		else:
+			box.bg_color = Color(0.10, 0.10, 0.12, 0.96)
+			box.border_color = Color(0.84, 0.70, 0.44, 0.45)
+			btn.add_theme_color_override("font_color", Color(0.90, 0.86, 0.76))
+		btn.add_theme_font_size_override("font_size", 13)
+		btn.add_theme_stylebox_override("normal", box)
+		btn.add_theme_stylebox_override("hover", box)
+		btn.add_theme_stylebox_override("pressed", box)
 
 
 func show_settings() -> void:

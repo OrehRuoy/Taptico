@@ -67,19 +67,25 @@ func _process(delta: float) -> void:
 	if not _active:
 		return
 	for i in SWITCH_COUNT:
-		_springs[i].step(delta)
+		if AppSettings.reduce_motion():
+			if not is_equal_approx(_springs[i].position, _springs[i].target):
+				_springs[i].snap_to(_springs[i].target)
+		else:
+			_springs[i].step(delta)
 		_apply_rocker(i)
 		var t := _springs[i].position
 		var was_on := _states[i]
 		var is_on := t > 0.82
 		if is_on and not was_on:
+			_states[i] = true
 			Haptics.heavy()
 			AudioFeel.play_switch()
-			_states[i] = true
+			UnlockNudge.note_switch()
 		elif (not is_on) and was_on and t < 0.18:
+			_states[i] = false
 			Haptics.medium()
 			AudioFeel.play_switch()
-			_states[i] = false
+			UnlockNudge.note_switch()
 
 
 func _apply_rocker(index: int) -> void:

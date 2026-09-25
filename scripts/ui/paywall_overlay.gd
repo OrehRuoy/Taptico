@@ -108,7 +108,9 @@ func _style() -> void:
 	if headline:
 		headline.hide()
 	if features:
-		features.hide()
+		features.show()
+		features.text = _lifetime_features()
+		features.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if message_label:
 		message_label.hide()
 		message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -277,7 +279,9 @@ func _on_dim_input(event: InputEvent) -> void:
 
 func _refresh_price() -> void:
 	if price_label:
-		price_label.text = IAPManager.get_price_display()
+		var price := IAPManager.get_price_display()
+		price_label.text = price
+		price_label.visible = not EntitlementStore.has_lifetime() and not price.is_empty()
 	if OS.has_feature("editor") and not (OS.get_name() == "iOS"):
 		status_label.text = ""
 	elif IAPManager.is_price_ready():
@@ -305,7 +309,7 @@ func _refresh_owned() -> void:
 	if _buy_caption:
 		_buy_caption.visible = not owned
 	if price_label:
-		price_label.visible = not owned
+		price_label.visible = not owned and not price_label.text.is_empty()
 	if message_label:
 		message_label.visible = owned
 		if owned:
@@ -354,17 +358,24 @@ func _on_busy_changed(is_busy: bool) -> void:
 	_set_busy(is_busy)
 
 
+func _lifetime_features() -> String:
+	var locked := 0
+	for i in ModuleRegistry.get_module_count():
+		if bool(ModuleRegistry.get_module(i).get("premium", false)):
+			locked += 1
+	var noun := "fidget" if locked == 1 else "fidgets"
+	return "%d more %s.\nDesk Stand stays on for life." % [locked, noun]
+
+
 func _on_buy() -> void:
 	if IAPManager.is_busy() or EntitlementStore.has_lifetime():
 		return
-	AnalyticsService.log_event("paywall_buy_tap", {"price": IAPManager.get_price_display()})
 	IAPManager.purchase_lifetime()
 
 
 func _on_restore() -> void:
 	if IAPManager.is_busy():
 		return
-	AnalyticsService.log_event("paywall_restore_tap", {})
 	IAPManager.restore_purchases()
 
 
@@ -385,7 +396,6 @@ func _on_purchase_started() -> void:
 func _on_success() -> void:
 	_set_busy(false)
 	status_label.text = "Thank you. Every module is unlocked."
-	AnalyticsService.log_purchase()
 	await get_tree().create_timer(0.9).timeout
 	hide()
 
