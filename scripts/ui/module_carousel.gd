@@ -35,6 +35,7 @@ var _analytics_id: String = ""
 var _play_started_ms: int = 0
 var _nudge_sheet: Control
 var _nudge_pending: bool = false
+var _nudge_wait: Timer
 
 
 func _ready() -> void:
@@ -69,6 +70,11 @@ func _ready() -> void:
 	_nudge_sheet = _NUDGE_SHEET.new()
 	add_child(_nudge_sheet)
 	_nudge_sheet.connect("see_unlock", _on_nudge_unlock)
+	_nudge_wait = Timer.new()
+	_nudge_wait.one_shot = true
+	_nudge_wait.wait_time = 0.6
+	_nudge_wait.timeout.connect(_try_nudge)
+	add_child(_nudge_wait)
 	UnlockNudge.offer_ready.connect(_on_offer_ready)
 	paywall.visibility_changed.connect(_try_nudge)
 	settings_overlay.visibility_changed.connect(_try_nudge)
@@ -387,7 +393,10 @@ func _flush_play_time() -> void:
 
 func _on_offer_ready() -> void:
 	_nudge_pending = true
-	_try_nudge()
+	if _nudge_wait:
+		_nudge_wait.start()
+	else:
+		_try_nudge()
 
 
 func _try_nudge() -> void:
@@ -395,6 +404,11 @@ func _try_nudge() -> void:
 		return
 	if not UnlockNudge.should_offer():
 		_nudge_pending = false
+		return
+	# A lock spin keeps sending clicks. Wait until the finger is up so the sheet is not born mid-drag.
+	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
+		if _nudge_wait:
+			_nudge_wait.start()
 		return
 	if paywall.visible or settings_overlay.visible or enjoy_overlay.visible or _nudge_sheet.visible:
 		return

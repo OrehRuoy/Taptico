@@ -2,7 +2,7 @@ extends Node
 ## One calm Lifetime unlock offer after real play on a free toy. Never on a cold open.
 
 const SAVE_PATH := "user://unlock_nudge.cfg"
-const LOCK_NEED := 8
+const LOCK_NEED := 40
 const SWITCH_NEED := 1
 const SLIDER_NEED := 1
 
