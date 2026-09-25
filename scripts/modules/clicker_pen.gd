@@ -10,6 +10,9 @@ const CUT_BOT := 0.058
 const TIP_CUT := 0.536
 const CLICK_W := 248.0
 const CLICK_H := 300.0
+## Screen fit was tuned on these source sizes. Later resizes must not change the toy.
+const BODY_REF_H := 1536.0
+const CLICK_REF := 1024.0
 
 var _click: Spring2D
 var _latched: bool = false
@@ -54,18 +57,28 @@ func _layout() -> void:
 	if size.y < 8.0 or BODY_TEX == null:
 		return
 	var c := ReachSettings.play_center(size)
-	var target_h := minf(size.y * 0.78, 420.0)
+	# Body, clicker, and tip all stay inside the card, with room to tap the top.
+	var target_h := minf(size.y * 0.56, 300.0)
 	var sc := target_h / float(BODY_TEX.get_height())
 	_body.scale = Vector2(sc, sc)
 	_body.position = c
 	_body.rotation = 0.0
 	var barrel_w: float = float(BODY_TEX.get_width()) * sc * (125.0 / 1024.0)
+	var click_tex_w := CLICK_REF
+	var click_tex_h := CLICK_REF
+	if _clicker.texture:
+		click_tex_w = maxf(float(_clicker.texture.get_width()), 1.0)
+		click_tex_h = maxf(float(_clicker.texture.get_height()), 1.0)
 	var click_sc: float = (barrel_w * 0.82) / CLICK_W
-	_clicker.scale = Vector2(click_sc, click_sc * 0.46)
+	_clicker.scale = Vector2(
+		click_sc * (CLICK_REF / click_tex_w),
+		click_sc * 0.46 * (CLICK_REF / click_tex_h)
+	)
 	_clicker.rotation = 0.0
 	_clicker.offset = Vector2.ZERO
 	if _tip and TIP_TEX:
-		var tip_sc: float = sc * (38.0 / 34.0)
+		var tip_px := maxf(float(TIP_TEX.get_height()), 1.0)
+		var tip_sc: float = (target_h / BODY_REF_H) * (38.0 / 34.0) * (84.0 / tip_px)
 		_tip.scale = Vector2(tip_sc, tip_sc)
 		_tip.rotation = 0.0
 	_place_ends()
