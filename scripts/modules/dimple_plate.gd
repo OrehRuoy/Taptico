@@ -63,13 +63,20 @@ func _ready() -> void:
 	_layout()
 
 
+func _fit_scale() -> float:
+	var target := minf(size.x * 0.78, size.y * 0.68)
+	return target / TEX_H
+
+
 func _layout() -> void:
 	if size.x < 8.0 or PLATE_TEX == null:
 		return
 	var c := ReachSettings.play_center(size) + Vector2(0, -18.0)
-	var target := minf(size.x * 0.78, size.y * 0.68)
-	var sc := target / float(TEX_H)
-	_plate.scale = Vector2(sc, sc)
+	var sc := _fit_scale()
+	# Holes were measured on the 1024x1536 plate. Draw the resized photo back up to that size.
+	var pw := maxf(float(PLATE_TEX.get_width()), 1.0)
+	var ph := maxf(float(PLATE_TEX.get_height()), 1.0)
+	_plate.scale = Vector2(sc * TEX_W / pw, sc * TEX_H / ph)
 	_plate.position = c
 	_place_domes()
 	var bw := 96.0
@@ -95,7 +102,7 @@ func _hole_y(col: int, row: int) -> float:
 
 
 func _place_domes() -> void:
-	var sc: float = _plate.scale.x
+	var sc: float = _fit_scale()
 	for row in ROWS:
 		for col in COLS:
 			var i := row * COLS + col
@@ -160,7 +167,7 @@ func _pop_at(pos: Vector2) -> void:
 
 
 func _index_at(pos: Vector2) -> int:
-	var sc: float = _plate.scale.x
+	var sc: float = _fit_scale()
 	var best := -1
 	var best_d := HOLE_D * sc * 0.62
 	for row in ROWS:
