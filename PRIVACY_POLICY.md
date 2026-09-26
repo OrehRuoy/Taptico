@@ -1,7 +1,7 @@
 # Privacy Policy — Taptico
 
 **Effective date:** August 19, 2026  
-**Last updated:** September 25, 2026  
+**Last updated:** September 26, 2026  
 **App:** Taptico (`com.orehruoy.taptico`)  
 **Developer:** OrehRuoy  
 **Hosted HTML:** [privacy.html](privacy.html) (GitHub Pages: `https://orehruoy.github.io/Taptico/privacy.html`)
