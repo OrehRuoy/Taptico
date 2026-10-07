@@ -248,11 +248,17 @@ func _layout_sheet() -> void:
 		hero.custom_minimum_size = Vector2(0, clampf((card_h - iy_t - iy_b) * 0.40, 148.0, 200.0))
 
 
-func show_paywall(_module_name: String = "") -> void:
+func show_paywall(module_name: String = "", trial_ended: bool = false) -> void:
 	if reset_button:
 		reset_button.visible = OS.has_feature("editor")
 	if close_button:
 		close_button.hide()
+	if features:
+		features.show()
+		if trial_ended and not module_name.is_empty() and not EntitlementStore.has_lifetime():
+			features.text = "Free try of %s is over.\nBuy Lifetime to keep using this one and the other locked fidgets." % module_name
+		else:
+			features.text = _lifetime_features()
 	_refresh_price()
 	_refresh_owned()
 	z_index = 200
@@ -384,6 +390,7 @@ func _on_close() -> void:
 
 
 func _on_reset_testing() -> void:
+	EntitlementStore.clear_trials()
 	EntitlementStore.reset_lifetime()
 	status_label.text = "Unlock reset."
 	show_paywall()

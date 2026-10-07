@@ -1,7 +1,7 @@
 # Privacy Policy — Taptico
 
 **Effective date:** August 19, 2026  
-**Last updated:** September 26, 2026  
+**Last updated:** October 7, 2026  
 **App:** Taptico (`com.orehruoy.taptico`)  
 **Developer:** OrehRuoy  
 **Hosted HTML:** [privacy.html](privacy.html) (GitHub Pages: `https://orehruoy.github.io/Taptico/privacy.html`)
@@ -16,7 +16,7 @@ If you choose to send optional feedback from the in-app prompt, that note (and d
 
 ### On your device only
 
-Motion sensors, haptics, and audio run locally. A small local file may remember Lifetime Unlock, sound and haptics settings, and whether we already asked if you are enjoying the app. That file is not uploaded to us.
+Motion sensors, haptics, and audio run locally. A small local file may remember Lifetime Unlock, sound and haptics settings, how much of each fidget’s one-time free try is left, and whether we already asked if you are enjoying the app. That file is not uploaded to us.
 
 ### Optional feedback
 

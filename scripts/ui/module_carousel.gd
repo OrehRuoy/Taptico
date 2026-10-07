@@ -36,6 +36,7 @@ var _play_started_ms: int = 0
 var _nudge_sheet: Control
 var _nudge_pending: bool = false
 var _nudge_wait: Timer
+var _trial_id: String = ""
 
 
 func _ready() -> void:
@@ -77,6 +78,7 @@ func _ready() -> void:
 	add_child(_nudge_wait)
 	UnlockNudge.offer_ready.connect(_on_offer_ready)
 	paywall.visibility_changed.connect(_try_nudge)
+	paywall.visibility_changed.connect(_on_paywall_visibility)
 	settings_overlay.visibility_changed.connect(_try_nudge)
 	enjoy_overlay.visibility_changed.connect(_try_nudge)
 	call_deferred("_maybe_show_enjoy")
@@ -339,13 +341,85 @@ func _finish_swipe(pos: Vector2) -> void:
 		_show_module(_current_index - 1)
 
 
+func _process(delta: float) -> void:
+	if _trial_id.is_empty() or not _trial_clock_running():
+		return
+	if EntitlementStore.is_module_unlocked(_trial_id):
+		_stop_trial_clock()
+		return
+	var before := EntitlementStore.trial_seconds_left(_trial_id)
+	var left := EntitlementStore.spend_trial(_trial_id, minf(delta, 0.25))
+	if ceili(left) != ceili(before):
+		_set_trial_subtitle(left)
+	if left <= 0.0:
+		var name := str(ModuleRegistry.get_module(_current_index).get("name", ""))
+		_expire_trial(name)
+
+
+func _trial_clock_running() -> bool:
+	if paywall.visible or settings_overlay.visible or enjoy_overlay.visible:
+		return false
+	if _nudge_sheet and _nudge_sheet.visible:
+		return false
+	return true
+
+
+func _begin_trial(module_id: String) -> void:
+	if _trial_id != module_id:
+		EntitlementStore.flush_trial_save()
+		_trial_id = module_id
+	_set_trial_subtitle(EntitlementStore.begin_trial(module_id))
+
+
+func _stop_trial_clock() -> void:
+	if _trial_id.is_empty():
+		return
+	_trial_id = ""
+	EntitlementStore.flush_trial_save()
+
+
+func _set_trial_subtitle(seconds: float) -> void:
+	var total := ceili(maxf(seconds, 0.0))
+	total = mini(total, int(EntitlementStore.TRIAL_SECONDS))
+	subtitle_label.text = "FREE TRY  %d:%02d" % [int(total / 60.0), total % 60]
+
+
+func _expire_trial(module_name: String) -> void:
+	_trial_id = ""
+	EntitlementStore.flush_trial_save()
+	for key in _module_instances:
+		var inst: FidgetModule = _module_instances[key]
+		inst.deactivate()
+	subtitle_label.text = "LOCKED"
+	_update_nav_styles()
+	_present_paywall(module_name, true)
+
+
+func _current_needs_purchase() -> bool:
+	var mod := ModuleRegistry.get_module(_current_index)
+	if mod.is_empty():
+		return false
+	var module_id := str(mod.get("id", ""))
+	if EntitlementStore.is_module_unlocked(module_id):
+		return false
+	return EntitlementStore.trial_seconds_left(module_id) <= 0.0
+
+
+func _on_paywall_visibility() -> void:
+	if paywall.visible or not _current_needs_purchase():
+		return
+	_show_module(0, false)
+
+
 func _show_module(index: int, track: bool = true) -> void:
 	index = clampi(index, 0, ModuleRegistry.get_module_count() - 1)
 	var mod := ModuleRegistry.get_module(index)
 	if mod.is_empty():
 		return
-	if not EntitlementStore.is_module_unlocked(str(mod.get("id", ""))):
-		_present_paywall(str(mod.get("name", "")))
+	var module_id := str(mod.get("id", ""))
+	var unlocked := EntitlementStore.is_module_unlocked(module_id)
+	if not unlocked and EntitlementStore.trial_seconds_left(module_id) <= 0.0:
+		_present_paywall(str(mod.get("name", "")), true)
 		_update_nav_styles()
 		return
 	for key in _module_instances:
@@ -368,7 +442,11 @@ func _show_module(index: int, track: bool = true) -> void:
 	active.activate()
 	_current_index = index
 	title_label.text = str(mod.get("name", ""))
-	subtitle_label.text = "FREE" if not bool(mod.get("premium", false)) else "PREMIUM"
+	if not unlocked and bool(mod.get("premium", false)):
+		_begin_trial(module_id)
+	else:
+		_stop_trial_clock()
+		subtitle_label.text = "FREE" if not bool(mod.get("premium", false)) else "PREMIUM"
 	hint_label.text = str(mod.get("hint", ""))
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_update_nav_styles()
@@ -423,6 +501,7 @@ func _on_nudge_unlock() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST:
+		EntitlementStore.flush_trial_save()
 		_flush_play_time()
 	elif what == NOTIFICATION_APPLICATION_RESUMED:
 		if not _analytics_id.is_empty():
@@ -434,7 +513,8 @@ func _notification(what: int) -> void:
 func _update_nav_styles() -> void:
 	for i in _nav_buttons.size():
 		var mod := ModuleRegistry.get_module(i)
-		var locked := not EntitlementStore.is_module_unlocked(str(mod.get("id", "")))
+		var module_id := str(mod.get("id", ""))
+		var locked := not EntitlementStore.is_module_unlocked(module_id) and EntitlementStore.trial_seconds_left(module_id) <= 0.0
 		_style_nav_button(_nav_buttons[i], i == _current_index, locked)
 		var col := _nav_buttons[i].get_parent() as Control
 		if col:
@@ -471,11 +551,11 @@ func _center_nav_on_current() -> void:
 	nav_bar.scroll_horizontal = int(clampf(mid - nav_bar.size.x * 0.5, 0.0, max_scroll))
 
 
-func _present_paywall(module_name: String = "") -> void:
+func _present_paywall(module_name: String = "", trial_ended: bool = false) -> void:
 	paywall.z_index = 200
 	paywall.z_as_relative = false
 	paywall.move_to_front()
-	paywall.show_paywall(module_name)
+	paywall.show_paywall(module_name, trial_ended)
 
 
 func _on_unlock_pressed() -> void:
@@ -523,6 +603,7 @@ func _maybe_show_enjoy() -> void:
 
 
 func _on_reset_pressed() -> void:
+	EntitlementStore.clear_trials()
 	EntitlementStore.reset_lifetime()
 	_show_module(0)
 

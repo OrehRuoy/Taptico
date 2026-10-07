@@ -204,7 +204,7 @@ jobs:
           EXPORTED=$(nm -gU "$APP_BIN" 2>/dev/null | grep -c 'FirebaseAuth\|FIRApp\|FirebaseCore' || true)
           echo "Firebase symbols exported by app binary: $EXPORTED"
           if [[ "$EXPORTED" -ne 0 ]]; then
-            echo "ERROR: Firebase is still linked. 1.0.1 ships without analytics."
+            echo "ERROR: Firebase is still linked. 1.0.2 ships without analytics."
             exit 1
           fi
           xcodebuild -exportArchive \
