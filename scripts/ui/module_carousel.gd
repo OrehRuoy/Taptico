@@ -499,7 +499,32 @@ func _on_nudge_unlock() -> void:
 	_present_paywall("Lifetime")
 
 
+func _on_android_back() -> void:
+	get_viewport().set_input_as_handled()
+	if enjoy_overlay != null and enjoy_overlay.visible:
+		enjoy_overlay._on_close()
+		return
+	if _nudge_sheet != null and _nudge_sheet.visible:
+		_nudge_sheet._close()
+		return
+	if paywall != null and paywall.visible:
+		if IAPManager.is_busy():
+			return
+		paywall._on_close()
+		return
+	if settings_overlay != null and settings_overlay.visible:
+		settings_overlay.hide_settings()
+		return
+	EntitlementStore.flush_trial_save()
+	_flush_play_time()
+	get_tree().quit()
+
+
 func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		if Platform.is_android():
+			_on_android_back()
+		return
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST:
 		EntitlementStore.flush_trial_save()
 		_flush_play_time()

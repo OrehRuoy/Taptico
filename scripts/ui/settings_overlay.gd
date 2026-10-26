@@ -24,6 +24,7 @@ var _close: TextureButton
 var _scroll: ScrollContainer
 var _col: VBoxContainer
 var _knob: ImageTexture
+var _android_haptic_hint: Label
 
 
 func _ready() -> void:
@@ -158,6 +159,15 @@ func _build() -> void:
 		_feel_buttons[int(item[0])] = feel_btn
 	_col.add_child(feel_row)
 
+	if Platform.is_android():
+		_android_haptic_hint = Label.new()
+		_android_haptic_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_android_haptic_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_android_haptic_hint.add_theme_font_size_override("font_size", 12)
+		_android_haptic_hint.add_theme_color_override("font_color", Color(0.78, 0.80, 0.82))
+		_android_haptic_hint.visible = false
+		_col.add_child(_android_haptic_hint)
+
 	_vol_lab = _section_label("Volume")
 	_col.add_child(_vol_lab)
 	_vol = _make_slider()
@@ -291,9 +301,15 @@ func _style_gold(button: Button) -> void:
 func _layout_card() -> void:
 	if _shell == null or size.x < 8.0:
 		return
+	var bounds := size
+	var origin := Vector2.ZERO
+	if Platform.is_android():
+		var safe := Platform.safe_margins(self)
+		origin = Vector2(safe.x, safe.y)
+		bounds = Vector2(maxf(8.0, size.x - safe.x - safe.z), maxf(8.0, size.y - safe.y - safe.w))
 	var pad := 16.0
-	var shell_w := minf(size.x - pad * 2.0, 392.0)
-	var shell_h := minf(size.y - pad * 2.0, 640.0)
+	var shell_w := minf(bounds.x - pad * 2.0, 392.0)
+	var shell_h := minf(bounds.y - pad * 2.0, 640.0)
 	var ix := shell_w * 0.135
 	var iy_t := shell_h * 0.11
 	var iy_b := shell_h * 0.10
@@ -305,14 +321,14 @@ func _layout_card() -> void:
 	var content_h := _col.get_combined_minimum_size().y + 10.0
 	var body_h := minf(content_h, inner_h - header_h - 8.0)
 	var needed_h := iy_t + header_h + 8.0 + body_h + iy_b
-	shell_h = minf(needed_h, size.y - pad * 2.0)
+	shell_h = minf(needed_h, bounds.y - pad * 2.0)
 	iy_t = shell_h * 0.11
 	iy_b = shell_h * 0.10
 	inner_w = shell_w - ix * 2.0
 	inner_h = shell_h - iy_t - iy_b
 	body_h = minf(content_h, inner_h - header_h - 8.0)
 	_shell.size = Vector2(shell_w, shell_h)
-	_shell.position = (size - _shell.size) * 0.5
+	_shell.position = origin + (bounds - _shell.size) * 0.5
 	_title.position = Vector2(ix, iy_t + 2.0)
 	_title.size = Vector2(inner_w, header_h)
 	_close.position = Vector2(ix + inner_w - close_s - 2.0, iy_t + 6.0)
@@ -342,6 +358,21 @@ func _refresh() -> void:
 	_shake_lab.text = "Shake / tilt  %s" % AppSettings.shake_label()
 	_refresh_reach()
 	_refresh_feel()
+	_refresh_android_haptic_hint()
+
+
+func _refresh_android_haptic_hint() -> void:
+	if _android_haptic_hint == null:
+		return
+	if not Haptics.has_vibrator():
+		_android_haptic_hint.text = "This device has no vibration motor. Sound still works."
+		_android_haptic_hint.visible = true
+	elif Haptics.android_touch_feedback_off():
+		_android_haptic_hint.text = "If you feel nothing, check Android Settings → Sound & vibration → Vibration & haptics."
+		_android_haptic_hint.visible = true
+	else:
+		_android_haptic_hint.visible = false
+		_android_haptic_hint.text = ""
 
 
 func _on_reach_selected(mode: int) -> void:

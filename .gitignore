@@ -4,11 +4,17 @@
 export_credentials.cfg
 .godot/export_credentials.cfg
 
-# Build artifacts
+# Build artifacts (repo-root export output only; android/build is the Gradle template)
 *.ipa
 *.xcarchive
-build/
+*.apk
+*.aab
+/build/
 bin/
+!addons/GodotGooglePlayBilling/bin/
+!addons/GodotGooglePlayBilling/bin/**
+!addons/InappReviewPlugin/bin/
+!addons/InappReviewPlugin/bin/**
 *.a
 *.xcframework/
 native/**/DerivedData/
@@ -22,6 +28,11 @@ Thumbs.db
 *.p12
 *.mobileprovision
 *.pem
+*.keystore
+*.jks
+keys/
+android/*.keystore
+google-services.json
 .env
 .env.*
 GoogleService-Info.plist
@@ -33,10 +44,31 @@ addons/GodotFirebaseiOS/
 # SwiftGodot runtime for GodotFirebaseiOS. CI installs via setup_ios_apple_plugins_runtime.sh
 addons/GodotApplePluginsRuntime/
 
-# One-off image processors (keep committed CI helpers under tools/ios)
+# One-off image processors (keep committed CI helpers under tools/ios and Android helpers under tools/android)
 tools/*
 !tools/ios/
 !tools/ios/**
+!tools/android/
+!tools/android/**
+
+# Godot Android template. Commit only the overrides we maintain.
+android/build/**
+!android/build/.gdignore
+!android/build/build.gradle
+!android/build/config.gradle
+!android/build/settings.gradle
+!android/build/gradle.properties
+!android/build/proguard-rules.pro
+!android/build/res/
+!android/build/res/**
+android/build/res/mipmap/
+android/build/res/mipmap-*/
+!android/build/src/
+!android/build/src/**
+android/build/src/debug/
+android/build/src/release/
+android/build/src/main/assets/
+android/build/build/
 
 # Leftover local npm (never ship)
 node_modules/

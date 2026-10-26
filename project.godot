@@ -13,6 +13,7 @@ config_version=5
 config/name="Taptico"
 config/description="Haptic Fidget & Focus Tool"
 config/version="1.0.2"
+config/quit_on_go_back=false
 run/main_scene="res://scenes/main/Main.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 boot_splash/bg_color=Color(0.0627451, 0.0705882, 0.0941176, 1)
@@ -26,6 +27,7 @@ general/ios/session_category=3
 
 [autoload]
 
+Platform="*res://scripts/services/platform.gd"
 Chroma="*res://scripts/core/chroma.gd"
 MagentaKey="*res://scripts/core/magenta_key.gd"
 AppSettings="*res://scripts/services/app_settings.gd"
@@ -50,7 +52,7 @@ window/handheld/orientation=5
 
 [editor_plugins]
 
-enabled=PackedStringArray()
+enabled=PackedStringArray("res://addons/GodotGooglePlayBilling/plugin.cfg", "res://addons/InappReviewPlugin/plugin.cfg")
 
 [input_devices]
 
@@ -65,4 +67,5 @@ sensors/enable_gyroscope=true
 [rendering]
 
 renderer/rendering_method="mobile"
+renderer/rendering_method.android="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true

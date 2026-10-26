@@ -93,16 +93,21 @@ func _layout_card() -> void:
 	if _card == null:
 		return
 	var area := size
+	var origin := Vector2.ZERO
 	if area.x < 8.0 or area.y < 8.0:
 		area = get_viewport_rect().size
 	if area.x < 8.0 or area.y < 8.0:
 		return
+	if Platform.is_android():
+		var safe := Platform.safe_margins(self)
+		origin = Vector2(safe.x, safe.y)
+		area = Vector2(maxf(8.0, area.x - safe.x - safe.z), maxf(8.0, area.y - safe.y - safe.w))
 	var card_w := minf(320.0, area.x - 36.0)
 	_card.custom_minimum_size = Vector2(card_w, 0.0)
 	var card_h := minf(_card.get_combined_minimum_size().y, area.y - 48.0)
 	card_h = maxf(card_h, 180.0)
 	_card.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_card.position = (area - Vector2(card_w, card_h)) * 0.5
+	_card.position = origin + (area - Vector2(card_w, card_h)) * 0.5
 	_card.size = Vector2(card_w, card_h)
 
 

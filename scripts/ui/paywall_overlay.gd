@@ -219,30 +219,36 @@ func _ghost_button(button: Button) -> void:
 func _layout_sheet() -> void:
 	if size.x < 8.0 or size.y < 8.0:
 		return
-	var card_w := minf(size.x * 0.86, 348.0)
-	var card_h := minf(size.y * 0.80, 580.0)
+	var area := size
+	var shift := Vector2.ZERO
+	if Platform.is_android():
+		var safe := Platform.safe_margins(self)
+		shift = Vector2((safe.x - safe.z) * 0.5, (safe.y - safe.w) * 0.5)
+		area = Vector2(maxf(8.0, size.x - safe.x - safe.z), maxf(8.0, size.y - safe.y - safe.w))
+	var card_w := minf(area.x * 0.86, 348.0)
+	var card_h := minf(area.y * 0.80, 580.0)
 	var hw := card_w * 0.5
 	var hh := card_h * 0.5
 	if frame:
 		frame.visible = true
-		frame.offset_left = -hw
-		frame.offset_right = hw
-		frame.offset_top = -hh
-		frame.offset_bottom = hh
+		frame.offset_left = -hw + shift.x
+		frame.offset_right = hw + shift.x
+		frame.offset_top = -hh + shift.y
+		frame.offset_bottom = hh + shift.y
 	var ix := card_w * 0.135
 	var iy_t := card_h * 0.11
 	var iy_b := card_h * 0.145
-	panel.offset_left = -hw + ix + 6.0
-	panel.offset_right = hw - ix - 6.0
-	panel.offset_top = -hh + iy_t + 8.0
-	panel.offset_bottom = hh - iy_b - 16.0
+	panel.offset_left = -hw + ix + 6.0 + shift.x
+	panel.offset_right = hw - ix - 6.0 + shift.x
+	panel.offset_top = -hh + iy_t + 8.0 + shift.y
+	panel.offset_bottom = hh - iy_b - 16.0 + shift.y
 	if _close_x:
 		var cs := 32.0
 		_close_x.anchor_left = 0.0
 		_close_x.anchor_top = 0.0
 		_close_x.anchor_right = 0.0
 		_close_x.anchor_bottom = 0.0
-		_close_x.position = Vector2(size.x * 0.5 + hw - ix - cs - 4.0, size.y * 0.5 - hh + iy_t + 6.0)
+		_close_x.position = Vector2(size.x * 0.5 + shift.x + hw - ix - cs - 4.0, size.y * 0.5 + shift.y - hh + iy_t + 6.0)
 		_close_x.size = Vector2(cs, cs)
 	if hero:
 		hero.custom_minimum_size = Vector2(0, clampf((card_h - iy_t - iy_b) * 0.40, 148.0, 200.0))
@@ -292,6 +298,8 @@ func _refresh_price() -> void:
 		status_label.text = ""
 	elif IAPManager.is_price_ready():
 		status_label.text = ""
+	elif Platform.is_android():
+		status_label.text = "Loading price from Google Play…"
 	else:
 		status_label.text = "Loading price from the App Store…"
 	_update_buy_enabled()
@@ -357,7 +365,10 @@ func _set_busy(is_busy: bool) -> void:
 	_update_buy_enabled()
 	close_button.disabled = false
 	if is_busy:
-		status_label.text = "Contacting the App Store…"
+		if Platform.is_android():
+			status_label.text = "Contacting Google Play…"
+		else:
+			status_label.text = "Contacting the App Store…"
 
 
 func _on_busy_changed(is_busy: bool) -> void:
@@ -425,4 +436,7 @@ func _on_restore_done(success: bool) -> void:
 		await get_tree().create_timer(0.9).timeout
 		hide()
 	else:
-		status_label.text = "No purchases found for this Apple ID."
+		if Platform.is_android():
+			status_label.text = "No purchase found for this Google account."
+		else:
+			status_label.text = "No purchases found for this Apple ID."
