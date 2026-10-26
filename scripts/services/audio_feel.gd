@@ -116,14 +116,20 @@ func _loop_wav(stream: AudioStream) -> AudioStream:
 	var wav := stream as AudioStreamWAV
 	if wav == null:
 		return stream
+	if wav.format != AudioStreamWAV.FORMAT_16_BITS:
+		wav.loop_mode = AudioStreamWAV.LOOP_DISABLED
+		return wav
+	var bytes_per_frame := 4 if wav.stereo else 2
+	var frames := maxi(1, int(wav.data.size() / bytes_per_frame))
 	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	wav.loop_begin = 0
-	var frames := int(round(wav.get_length() * float(wav.mix_rate)))
-	if wav.format == AudioStreamWAV.FORMAT_16_BITS:
-		var bytes_per_frame := 4 if wav.stereo else 2
-		frames = maxi(1, int(wav.data.size() / bytes_per_frame))
-	wav.loop_end = maxi(1, frames - 1)
+	wav.loop_end = maxi(1, frames - 2)
 	return wav
+
+
+func _held_stream_loops(stream: AudioStream) -> bool:
+	var wav := stream as AudioStreamWAV
+	return wav != null and wav.format == AudioStreamWAV.FORMAT_16_BITS and wav.loop_mode != AudioStreamWAV.LOOP_DISABLED
 
 
 func _load_wav(path: String) -> AudioStreamWAV:
@@ -438,7 +444,10 @@ func _play_held(name: String, pitch: float = 1.0, gain: float = 1.0) -> void:
 		p.stream = _streams[name]
 	p.pitch_scale = clampf(pitch, 0.7, 1.4)
 	p.volume_db = linear_to_db(clampf(AppSettings.sound_volume * gain, 0.0001, 1.0))
-	if not p.playing:
+	if _held_stream_loops(p.stream):
+		if not p.playing:
+			p.play()
+	else:
 		p.play()
 
 

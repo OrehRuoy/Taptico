@@ -29,6 +29,8 @@ var _device_lab: Label
 var _status: Label
 var _send: Button
 var _no_btn: Button
+var _crash_check: CheckBox
+var _sent_crash_name: String = ""
 var _http: HTTPRequest
 
 
@@ -56,6 +58,7 @@ func present(preview: bool = false) -> void:
 	if _email:
 		_email.text = ""
 	_device_lab.text = tr("ENJOY_DEVICE") % EnjoyPrompt.device_summary()
+	_refresh_crash_checkbox()
 	_show_page()
 	show()
 	move_to_front()
@@ -160,6 +163,23 @@ func _build() -> void:
 	_device_lab = _muted_label("")
 	_device_lab.add_theme_font_size_override("font_size", 11)
 	_form_box.add_child(_device_lab)
+	_crash_check = CheckBox.new()
+	_crash_check.text = tr("FEEDBACK_INCLUDE_CRASH")
+	_crash_check.button_pressed = false
+	_crash_check.focus_mode = Control.FOCUS_NONE
+	_crash_check.visible = false
+	_crash_check.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_crash_check.add_theme_font_size_override("font_size", 13)
+	_crash_check.add_theme_color_override("font_color", Color(0.78, 0.80, 0.82))
+	_crash_check.add_theme_color_override("font_hover_color", Color(0.93, 0.86, 0.66))
+	_crash_check.add_theme_color_override("font_pressed_color", Color(0.96, 0.88, 0.62))
+	_crash_check.add_theme_color_override("font_hover_pressed_color", Color(0.96, 0.88, 0.62))
+	_crash_check.add_theme_color_override("icon_normal_color", Color(0.84, 0.70, 0.44))
+	_crash_check.add_theme_color_override("icon_hover_color", Color(0.93, 0.82, 0.55))
+	_crash_check.add_theme_color_override("icon_pressed_color", Color(0.96, 0.88, 0.62))
+	if "autowrap_mode" in _crash_check:
+		_crash_check.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_form_box.add_child(_crash_check)
 	_status = _muted_label("")
 	_status.add_theme_color_override("font_color", Color(0.93, 0.82, 0.58))
 	_form_box.add_child(_status)
@@ -218,6 +238,7 @@ func _on_yes() -> void:
 
 func _on_no() -> void:
 	AudioFeel.play_tick(0.85)
+	_refresh_crash_checkbox()
 	_page = "form"
 	_show_page()
 	_feedback.grab_focus()
@@ -244,13 +265,22 @@ func _on_send() -> void:
 		str(snap.model), str(snap.os), str(snap.os_version), str(snap.app_version),
 		str(snap.screen), str(snap.locale), "yes" if wants_reply else "no (no email given)",
 	]
+	var message := note + details
+	_sent_crash_name = ""
+	if _crash_check != null and _crash_check.visible and _crash_check.button_pressed:
+		var report := _latest_crash_report_text()
+		if not report.is_empty():
+			if report.length() > 20000:
+				report = report.substr(0, 20000)
+			message += "\n\n---\nCrash report:\n%s" % report
+			_sent_crash_name = _newest_crash_file_name()
 	var payload := {
 		"access_key": WEB3FORMS_KEY,
 		"subject": "Taptico feedback",
 		"from_name": "Taptico",
 		"name": "Taptico user",
 		"email": mail if wants_reply else FALLBACK_EMAIL,
-		"message": note + details,
+		"message": message,
 		"app_version": str(snap.app_version),
 		"device": str(snap.model),
 		"os": "%s %s" % [snap.os, snap.os_version],
@@ -271,6 +301,7 @@ func _on_send() -> void:
 	)
 	if err != OK:
 		_busy = false
+		_sent_crash_name = ""
 		_status.text = tr("ENJOY_SEND_FAIL_CONN")
 		_show_page()
 
@@ -284,9 +315,11 @@ func _on_http_done(result: int, response_code: int, _headers: PackedStringArray,
 		if parsed is Dictionary and parsed.has("success"):
 			ok = bool(parsed["success"])
 	if not ok:
+		_sent_crash_name = ""
 		_status.text = tr("ENJOY_SEND_FAIL_RETRY")
 		_show_page()
 		return
+	_delete_sent_crash_file()
 	if not _preview:
 		EnjoyPrompt.mark_completed()
 	_thanks_lab.text = tr("ENJOY_THANKS_GOT_IT")
@@ -322,6 +355,53 @@ func _on_dim(event: InputEvent) -> void:
 		tapped = true
 	if tapped:
 		_on_close()
+
+
+func _refresh_crash_checkbox() -> void:
+	if _crash_check == null:
+		return
+	_crash_check.text = tr("FEEDBACK_INCLUDE_CRASH")
+	_crash_check.button_pressed = false
+	_crash_check.visible = OS.get_name() == "iOS" and Haptics.has_crash_reports()
+
+
+func _latest_crash_report_text() -> String:
+	if OS.get_name() != "iOS":
+		return ""
+	return Haptics.get_latest_crash_report()
+
+
+func _newest_crash_file_name() -> String:
+	var dir := DirAccess.open("user://diagnostics")
+	if dir == null:
+		return ""
+	var best := ""
+	var best_stamp := -1
+	for file_name in dir.get_files():
+		var name := str(file_name)
+		var stamp := _crash_stamp(name)
+		if stamp > best_stamp:
+			best_stamp = stamp
+			best = name
+	return best
+
+
+func _crash_stamp(file_name: String) -> int:
+	if not file_name.begins_with("mx_") or not file_name.ends_with(".json"):
+		return -1
+	var stem := file_name.trim_suffix(".json").substr(3)
+	if stem.is_empty() or not stem.is_valid_int():
+		return -1
+	return int(stem)
+
+
+func _delete_sent_crash_file() -> void:
+	if _sent_crash_name.is_empty():
+		return
+	var dir := DirAccess.open("user://diagnostics")
+	if dir != null:
+		dir.remove(_sent_crash_name)
+	_sent_crash_name = ""
 
 
 func _email_ok(value: String) -> bool:

@@ -2,6 +2,7 @@
 #import <StoreKit/StoreKit.h>
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
+#include <string>
 
 void emit_purchase_updated(const char *product_id);
 void emit_purchase_failed(const char *message);
@@ -11,8 +12,42 @@ void emit_products_failed(const char *message);
 
 static NSString *g_product_id = @"com.orehruoy.taptico.lifetime";
 static NSString *g_price = @"";
+static std::string g_price_utf8;
 static BOOL g_price_ready = NO;
 static BOOL g_lifetime = NO;
+
+static void on_main(dispatch_block_t block) {
+    if (block == nil) {
+        return;
+    }
+    if ([NSThread isMainThread]) {
+        block();
+    } else {
+        dispatch_async(dispatch_get_main_queue(), block);
+    }
+}
+
+static const char *TapticoUTF8(NSString *text) {
+    const char *utf8 = text.UTF8String;
+    return utf8 != nullptr ? utf8 : "";
+}
+
+static void TapticoSetPrice(NSString *price) {
+    NSString *value = price ?: @"";
+    g_price = value;
+    const char *utf8 = value.UTF8String;
+    if (utf8 == nullptr || value.length == 0) {
+        g_price_utf8.clear();
+        g_price_ready = NO;
+        return;
+    }
+    g_price_utf8.assign(utf8);
+    g_price_ready = YES;
+}
+
+static void TapticoMarkPriceUnavailable(void) {
+    g_price_ready = NO;
+}
 
 static NSString *TapticoStoreErrorMessage(NSError *error) {
     if (error == nil) {
@@ -39,6 +74,7 @@ static NSString *TapticoStoreErrorMessage(NSError *error) {
 @interface TapticoStoreKit : NSObject <SKProductsRequestDelegate, SKPaymentTransactionObserver>
 @property(nonatomic, copy) NSString *productId;
 @property(nonatomic, strong) SKProduct *cachedProduct;
+@property(nonatomic, strong) SKProductsRequest *currentRequest;
 @property(nonatomic, assign) BOOL pendingPurchase;
 @end
 
@@ -55,58 +91,76 @@ static NSString *TapticoStoreErrorMessage(NSError *error) {
 }
 
 - (void)dealloc {
+    self.currentRequest.delegate = nil;
+    [self.currentRequest cancel];
+    self.currentRequest = nil;
     [[SKPaymentQueue defaultQueue] removeTransactionObserver:self];
 }
 
 - (void)initialize:(NSString *)productId {
-    self.productId = productId.length > 0 ? productId : g_product_id;
-    self.pendingPurchase = NO;
-    [self fetchProducts];
-    [self syncLocalEntitlements];
+    NSString *sku = productId.length > 0 ? productId : g_product_id;
+    on_main(^{
+        self.productId = sku;
+        self.pendingPurchase = NO;
+        [self fetchProducts];
+        [self syncLocalEntitlements];
+    });
 }
 
 - (void)fetchProducts {
-    NSString *sku = self.productId ?: g_product_id;
-    SKProductsRequest *request = [[SKProductsRequest alloc] initWithProductIdentifiers:[NSSet setWithObject:sku]];
-    request.delegate = self;
-    [request start];
+    NSString *sku = self.productId.length > 0 ? self.productId : g_product_id;
+    on_main(^{
+        SKProductsRequest *previous = self.currentRequest;
+        self.currentRequest = nil;
+        previous.delegate = nil;
+        [previous cancel];
+        SKProductsRequest *request = [[SKProductsRequest alloc] initWithProductIdentifiers:[NSSet setWithObject:sku]];
+        request.delegate = self;
+        self.currentRequest = request;
+        [request start];
+    });
 }
 
 - (void)purchase:(NSString *)productId {
-    if (![SKPaymentQueue canMakePayments]) {
-        if (emit_purchase_failed) {
-            emit_purchase_failed("Purchases are not allowed on this device.");
-        }
-        return;
-    }
     NSString *sku = productId.length > 0 ? productId : (self.productId ?: g_product_id);
-    self.productId = sku;
-    if (self.cachedProduct && [self.cachedProduct.productIdentifier isEqualToString:sku]) {
-        SKPayment *payment = [SKPayment paymentWithProduct:self.cachedProduct];
-        [[SKPaymentQueue defaultQueue] addPayment:payment];
-        return;
-    }
-    self.pendingPurchase = YES;
-    [self fetchProducts];
+    on_main(^{
+        if (![SKPaymentQueue canMakePayments]) {
+            NSString *message = @"Purchases are not allowed on this device.";
+            emit_purchase_failed(TapticoUTF8(message));
+            return;
+        }
+        self.productId = sku;
+        if (self.cachedProduct != nil && [self.cachedProduct.productIdentifier isEqualToString:sku]) {
+            SKPayment *payment = [SKPayment paymentWithProduct:self.cachedProduct];
+            [[SKPaymentQueue defaultQueue] addPayment:payment];
+            return;
+        }
+        self.pendingPurchase = YES;
+        [self fetchProducts];
+    });
 }
 
 - (void)restore {
     // Only called from the Restore Purchases button.
-    [[SKPaymentQueue defaultQueue] restoreCompletedTransactions];
+    on_main(^{
+        [[SKPaymentQueue defaultQueue] restoreCompletedTransactions];
+    });
 }
 
 - (void)syncLocalEntitlements {
     // Inspect unfinished / current queue without prompting Apple ID.
-    for (SKPaymentTransaction *transaction in [SKPaymentQueue defaultQueue].transactions) {
-        BOOL matches = [transaction.payment.productIdentifier isEqualToString:(self.productId ?: g_product_id)];
-        if (!matches) {
-            continue;
+    on_main(^{
+        for (SKPaymentTransaction *transaction in [SKPaymentQueue defaultQueue].transactions) {
+            BOOL matches = [transaction.payment.productIdentifier isEqualToString:(self.productId ?: g_product_id)];
+            if (!matches) {
+                continue;
+            }
+            if (transaction.transactionState == SKPaymentTransactionStatePurchased ||
+                transaction.transactionState == SKPaymentTransactionStateRestored) {
+                g_lifetime = YES;
+            }
         }
-        if (transaction.transactionState == SKPaymentTransactionStatePurchased ||
-            transaction.transactionState == SKPaymentTransactionStateRestored) {
-            g_lifetime = YES;
-        }
-    }
+    });
 }
 
 - (BOOL)has_lifetime { return g_lifetime; }
@@ -114,95 +168,117 @@ static NSString *TapticoStoreErrorMessage(NSError *error) {
 - (BOOL)is_price_ready { return g_price_ready; }
 
 - (void)productsRequest:(SKProductsRequest *)request didReceiveResponse:(SKProductsResponse *)response {
-    if (response.products.count == 0) {
-        g_price_ready = NO;
-        g_price = @"";
+    SKProduct *product = response.products.firstObject;
+    NSString *localized = @"";
+    if (product != nil) {
+        NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
+        formatter.numberStyle = NSNumberFormatterCurrencyStyle;
+        formatter.locale = product.priceLocale;
+        localized = [formatter stringFromNumber:product.price] ?: @"";
+    }
+    NSString *missing = @"This product is not available in your App Store region.";
+    NSString *loadFailed = @"Could not load App Store products. Check your connection.";
+    on_main(^{
+        if (request != self.currentRequest) {
+            return;
+        }
+        self.currentRequest = nil;
+        if (product == nil) {
+            TapticoSetPrice(@"");
+            BOOL wasPurchase = self.pendingPurchase;
+            self.pendingPurchase = NO;
+            if (wasPurchase) {
+                emit_purchase_failed(TapticoUTF8(missing));
+            } else {
+                emit_products_failed(TapticoUTF8(loadFailed));
+            }
+            return;
+        }
+        self.cachedProduct = product;
+        TapticoSetPrice(localized);
+        if (g_price_ready) {
+            emit_products_loaded(g_price_utf8.c_str());
+        }
         if (self.pendingPurchase) {
             self.pendingPurchase = NO;
-            if (emit_purchase_failed) {
-                emit_purchase_failed("This product is not available in your App Store region.");
-            }
-        } else if (emit_products_failed) {
-            emit_products_failed("Could not load App Store products. Check your connection.");
+            SKPayment *payment = [SKPayment paymentWithProduct:product];
+            [[SKPaymentQueue defaultQueue] addPayment:payment];
         }
-        return;
-    }
-    SKProduct *product = response.products.firstObject;
-    self.cachedProduct = product;
-    NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
-    formatter.numberStyle = NSNumberFormatterCurrencyStyle;
-    formatter.locale = product.priceLocale;
-    NSString *localized = [formatter stringFromNumber:product.price];
-    g_price = localized ?: @"";
-    g_price_ready = g_price.length > 0;
-    if (g_price_ready && emit_products_loaded) {
-        emit_products_loaded([g_price UTF8String]);
-    }
-    if (self.pendingPurchase) {
-        self.pendingPurchase = NO;
-        SKPayment *payment = [SKPayment paymentWithProduct:product];
-        [[SKPaymentQueue defaultQueue] addPayment:payment];
-    }
+    });
 }
 
 - (void)request:(SKRequest *)request didFailWithError:(NSError *)error {
-    g_price_ready = NO;
-    BOOL wasPurchase = self.pendingPurchase;
-    self.pendingPurchase = NO;
-    const char *msg = [TapticoStoreErrorMessage(error) UTF8String];
-    if (wasPurchase && emit_purchase_failed) {
-        emit_purchase_failed(msg);
-    } else if (emit_products_failed) {
-        emit_products_failed(msg);
-    }
+    NSString *message = TapticoStoreErrorMessage(error);
+    on_main(^{
+        if (request != self.currentRequest) {
+            return;
+        }
+        self.currentRequest = nil;
+        BOOL wasPurchase = self.pendingPurchase;
+        self.pendingPurchase = NO;
+        TapticoMarkPriceUnavailable();
+        if (wasPurchase) {
+            emit_purchase_failed(TapticoUTF8(message));
+        } else {
+            emit_products_failed(TapticoUTF8(message));
+        }
+    });
+}
+
+- (void)requestDidFinish:(SKRequest *)request {
+    on_main(^{
+        if (self.currentRequest == request) {
+            self.currentRequest = nil;
+        }
+    });
 }
 
 - (void)paymentQueue:(SKPaymentQueue *)queue updatedTransactions:(NSArray<SKPaymentTransaction *> *)transactions {
+    (void)queue;
     for (SKPaymentTransaction *transaction in transactions) {
-        if (![transaction.payment.productIdentifier isEqualToString:(self.productId ?: g_product_id)]) {
+        NSString *sku = transaction.payment.productIdentifier ?: @"";
+        NSString *expected = self.productId ?: g_product_id;
+        if (![sku isEqualToString:expected]) {
             continue;
         }
-        switch (transaction.transactionState) {
-            case SKPaymentTransactionStatePurchased:
-            case SKPaymentTransactionStateRestored:
+        SKPaymentTransactionState state = transaction.transactionState;
+        if (state == SKPaymentTransactionStatePurchased || state == SKPaymentTransactionStateRestored) {
+            NSString *productId = [sku copy];
+            on_main(^{
                 g_lifetime = YES;
-                if (emit_purchase_updated) {
-                    emit_purchase_updated([transaction.payment.productIdentifier UTF8String]);
-                }
-                if (emit_entitlements_updated) {
-                    emit_entitlements_updated(YES);
-                }
+                emit_purchase_updated(TapticoUTF8(productId));
+                emit_entitlements_updated(YES);
                 [[SKPaymentQueue defaultQueue] finishTransaction:transaction];
-                break;
-            case SKPaymentTransactionStateFailed: {
-                NSError *error = transaction.error;
-                BOOL cancelled = error && [error.domain isEqualToString:SKErrorDomain] && error.code == SKErrorPaymentCancelled;
-                if (emit_purchase_failed) {
-                    emit_purchase_failed(cancelled ? "Purchase cancelled." : [TapticoStoreErrorMessage(error) UTF8String]);
-                }
+            });
+            continue;
+        }
+        if (state == SKPaymentTransactionStateFailed) {
+            NSError *error = transaction.error;
+            BOOL cancelled = error != nil && [error.domain isEqualToString:SKErrorDomain] && error.code == SKErrorPaymentCancelled;
+            NSString *message = cancelled ? @"Purchase cancelled." : TapticoStoreErrorMessage(error);
+            on_main(^{
+                emit_purchase_failed(TapticoUTF8(message));
                 [[SKPaymentQueue defaultQueue] finishTransaction:transaction];
-                break;
-            }
-            default:
-                break;
+            });
         }
     }
 }
 
 - (void)paymentQueueRestoreCompletedTransactionsFinished:(SKPaymentQueue *)queue {
+    (void)queue;
     [self syncLocalEntitlements];
-    if (emit_entitlements_updated) {
+    on_main(^{
         emit_entitlements_updated(g_lifetime);
-    }
+    });
 }
 
 - (void)paymentQueue:(SKPaymentQueue *)queue restoreCompletedTransactionsFailedWithError:(NSError *)error {
-    if (emit_purchase_failed) {
-        emit_purchase_failed([TapticoStoreErrorMessage(error) UTF8String]);
-    }
-    if (emit_entitlements_updated) {
+    (void)queue;
+    NSString *message = TapticoStoreErrorMessage(error);
+    on_main(^{
+        emit_purchase_failed(TapticoUTF8(message));
         emit_entitlements_updated(g_lifetime);
-    }
+    });
 }
 
 @end
@@ -262,7 +338,7 @@ void storekit_request_review() {
 }
 
 const char *storekit_get_price() {
-    return [(g_price ?: @"") UTF8String];
+    return g_price_utf8.c_str();
 }
 
 bool storekit_is_price_ready() {

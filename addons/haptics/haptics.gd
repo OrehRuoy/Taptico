@@ -264,3 +264,15 @@ func is_charging() -> bool:
 	if _plugin:
 		return bool(_call_native("is_charging"))
 	return false
+
+
+func has_crash_reports() -> bool:
+	if _plugin == null or _plugin == self or not _plugin.has_method("has_crash_reports"):
+		return false
+	return bool(_plugin.call("has_crash_reports"))
+
+
+func get_latest_crash_report() -> String:
+	if _plugin == null or _plugin == self or not _plugin.has_method("get_latest_crash_report"):
+		return ""
+	return str(_plugin.call("get_latest_crash_report"))

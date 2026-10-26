@@ -24,6 +24,8 @@ var _icon_size := 58.0
 
 var _current_index: int = 0
 var _module_instances: Dictionary = {}
+var _shown_scene_path: String = ""
+var _previous_scene_path: String = ""
 var _nav_buttons: Array[TextureButton] = []
 var _nav_labels: Array[Label] = []
 var _swipe_from := Vector2.ZERO
@@ -484,9 +486,14 @@ func _set_trial_subtitle(seconds: float) -> void:
 func _expire_trial(module_name: String) -> void:
 	_trial_id = ""
 	EntitlementStore.flush_trial_save()
-	for key in _module_instances:
+	for key in _module_instances.keys():
 		var inst: FidgetModule = _module_instances[key]
-		inst.deactivate()
+		if is_instance_valid(inst) and not inst.is_queued_for_deletion():
+			inst.deactivate()
+			inst.queue_free()
+		_module_instances.erase(key)
+	_shown_scene_path = ""
+	_previous_scene_path = ""
 	subtitle_label.text = tr("BADGE_LOCKED")
 	_fit_chrome_text()
 	_update_nav_styles()
@@ -520,9 +527,6 @@ func _show_module(index: int, track: bool = true) -> void:
 		_present_paywall(ModuleRegistry.display_name(mod), true)
 		_update_nav_styles()
 		return
-	for key in _module_instances:
-		var inst: FidgetModule = _module_instances[key]
-		inst.deactivate()
 	var scene_path := str(mod.get("scene", ""))
 	if scene_path.is_empty():
 		push_error("Module missing scene: %s" % str(mod.get("id", "")))
@@ -536,8 +540,26 @@ func _show_module(index: int, track: bool = true) -> void:
 		module_host.add_child(instance)
 		instance.set_anchors_preset(Control.PRESET_FULL_RECT)
 		_module_instances[scene_path] = instance
-	var active: FidgetModule = _module_instances[scene_path]
+	var retained_previous := _previous_scene_path
+	if scene_path != _shown_scene_path:
+		retained_previous = _shown_scene_path
+	for key in _module_instances.keys():
+		var inst: FidgetModule = _module_instances[key]
+		var keep := str(key) == scene_path or (not retained_previous.is_empty() and str(key) == retained_previous)
+		if not is_instance_valid(inst) or inst.is_queued_for_deletion():
+			_module_instances.erase(key)
+			continue
+		inst.deactivate()
+		if not keep:
+			inst.queue_free()
+			_module_instances.erase(key)
+	var active: FidgetModule = _module_instances.get(scene_path)
+	if active == null or not is_instance_valid(active):
+		return
 	active.activate()
+	if scene_path != _shown_scene_path:
+		_previous_scene_path = _shown_scene_path
+		_shown_scene_path = scene_path
 	_current_index = index
 	title_label.text = ModuleRegistry.display_name(mod)
 	if not unlocked and bool(mod.get("premium", false)):

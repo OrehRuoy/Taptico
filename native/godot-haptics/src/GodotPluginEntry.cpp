@@ -5,6 +5,7 @@
 #include "core/object/class_db.h"
 #include "core/object/object.h"
 #include "core/os/memory.h"
+#include "core/string/ustring.h"
 
 extern "C" {
 void haptics_init_impl(void);
@@ -20,6 +21,8 @@ void haptics_double_pulse(void);
 bool haptics_is_supported(void);
 bool haptics_is_charging(void);
 void haptics_configure_playback(void);
+bool haptics_has_crash_reports(void);
+const char *haptics_get_latest_crash_report(void);
 }
 
 class HapticsBridge : public Object {
@@ -38,6 +41,8 @@ protected:
 		ClassDB::bind_method(D_METHOD("is_supported"), &HapticsBridge::is_supported);
 		ClassDB::bind_method(D_METHOD("is_charging"), &HapticsBridge::is_charging);
 		ClassDB::bind_method(D_METHOD("configurePlaybackAudioSession"), &HapticsBridge::configure_playback);
+		ClassDB::bind_method(D_METHOD("has_crash_reports"), &HapticsBridge::has_crash_reports);
+		ClassDB::bind_method(D_METHOD("get_latest_crash_report"), &HapticsBridge::get_latest_crash_report);
 	}
 
 public:
@@ -52,6 +57,14 @@ public:
 	bool is_supported() { return haptics_is_supported(); }
 	bool is_charging() { return haptics_is_charging(); }
 	void configure_playback() { haptics_configure_playback(); }
+	bool has_crash_reports() { return haptics_has_crash_reports(); }
+	String get_latest_crash_report() {
+		const char *report = haptics_get_latest_crash_report();
+		if (report == nullptr || report[0] == '\0') {
+			return String();
+		}
+		return String::utf8(report);
+	}
 };
 
 static HapticsBridge *haptics_singleton = nullptr;

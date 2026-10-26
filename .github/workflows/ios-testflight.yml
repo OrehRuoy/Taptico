@@ -226,6 +226,13 @@ jobs:
           ls -la build/*.ipa
           test -f build/Taptico.ipa
 
+      - name: Upload dSYMs
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taptico-dSYMs
+          path: build/Taptico.xcarchive/dSYMs
+          retention-days: 90
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
