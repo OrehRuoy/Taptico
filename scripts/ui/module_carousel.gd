@@ -37,6 +37,12 @@ var _nudge_sheet: Control
 var _nudge_pending: bool = false
 var _nudge_wait: Timer
 var _trial_id: String = ""
+var _android_rule: TextureRect
+
+const _HEADER_TEX_W := 1024.0
+const _HEADER_TEX_H := 683.0
+const _HEADER_LINE_Y := 389.0
+const _HEADER_LINE_PX := 3.0
 
 
 func _ready() -> void:
@@ -149,22 +155,25 @@ func _layout_chrome() -> void:
 	var title_h := clampf(size.y * 0.095, 64.0, 96.0)
 	var nav_h := clampf(size.y * 0.125, 92.0, 128.0)
 	var stage_inset := clampf(size.x * 0.03, 10.0, 22.0)
-	var header_top := maxf(4.0, safe.y - 10.0)
-	$HeaderBar.offset_top = 0.0
-	$HeaderBar.offset_bottom = header_top + header_h
-	$Header.offset_top = header_top
-	$Header.offset_bottom = header_top + header_h
-	title_band.offset_top = header_top + header_h
-	title_band.offset_bottom = header_top + header_h + title_h
-	stage.offset_left = stage_inset
-	stage.offset_right = -stage_inset
-	stage.offset_top = header_top + header_h + title_h + 8.0
-	stage.offset_bottom = -(nav_h + safe.w)
-	nav_bar.offset_left = stage_inset
-	nav_bar.offset_right = -stage_inset
-	nav_bar.offset_top = -(nav_h + safe.w - 4.0)
-	nav_bar.offset_bottom = -maxi(4, int(safe.w) - 2)
-	_layout_header_controls(header_h)
+	if Platform.is_android():
+		_layout_android_header(safe, header_h, title_h, nav_h, stage_inset)
+	else:
+		var header_top := maxf(4.0, safe.y - 10.0)
+		$HeaderBar.offset_top = 0.0
+		$HeaderBar.offset_bottom = header_top + header_h
+		$Header.offset_top = header_top
+		$Header.offset_bottom = header_top + header_h
+		title_band.offset_top = header_top + header_h
+		title_band.offset_bottom = header_top + header_h + title_h
+		stage.offset_left = stage_inset
+		stage.offset_right = -stage_inset
+		stage.offset_top = header_top + header_h + title_h + 8.0
+		stage.offset_bottom = -(nav_h + safe.w)
+		nav_bar.offset_left = stage_inset
+		nav_bar.offset_right = -stage_inset
+		nav_bar.offset_top = -(nav_h + safe.w - 4.0)
+		nav_bar.offset_bottom = -maxi(4, int(safe.w) - 2)
+		_layout_header_controls(header_h)
 	title_label.offset_top = 0.0
 	title_label.offset_bottom = title_h * 0.34
 	subtitle_label.offset_top = title_h * 0.44
@@ -175,12 +184,89 @@ func _layout_chrome() -> void:
 	_update_nav_styles()
 
 
+func _layout_android_header(safe: Vector4, content_h: float, title_h: float, nav_h: float, stage_inset: float) -> void:
+	_ensure_android_header_rule()
+	var inset := safe.y
+	var header_bottom := inset + content_h
+	var old_bar := maxf(4.0, safe.y - 10.0) + content_h
+	var gap := _covered_header_line_gap(old_bar, size.x)
+	var line_h := maxf(1.0, _HEADER_LINE_PX * size.x / _HEADER_TEX_W)
+	var bar: TextureRect = $HeaderBar
+	bar.offset_top = 0.0
+	bar.offset_bottom = maxf(line_h, header_bottom - line_h)
+	if _android_rule:
+		_android_rule.offset_left = 0.0
+		_android_rule.offset_right = 0.0
+		_android_rule.offset_top = header_bottom - line_h
+		_android_rule.offset_bottom = header_bottom
+		_android_rule.visible = bar.visible
+	$Header.offset_top = inset
+	$Header.offset_bottom = header_bottom
+	var below := header_bottom + gap
+	title_band.offset_top = below
+	title_band.offset_bottom = below + title_h
+	stage.offset_left = stage_inset
+	stage.offset_right = -stage_inset
+	stage.offset_top = below + title_h + 8.0
+	stage.offset_bottom = -(nav_h + safe.w)
+	nav_bar.offset_left = stage_inset
+	nav_bar.offset_right = -stage_inset
+	nav_bar.offset_top = -(nav_h + safe.w - 4.0)
+	nav_bar.offset_bottom = -maxi(4, int(safe.w) - 2)
+	_layout_header_controls(content_h)
+
+
+func _ensure_android_header_rule() -> void:
+	if _android_rule != null:
+		return
+	var bar: TextureRect = $HeaderBar
+	var src := bar.texture
+	if src == null:
+		return
+	var tw := float(src.get_width())
+	var th := float(src.get_height())
+	if tw < 8.0 or th < 8.0:
+		tw = _HEADER_TEX_W
+		th = _HEADER_TEX_H
+	var line_y := _HEADER_LINE_Y * th / _HEADER_TEX_H
+	var line_px := _HEADER_LINE_PX * th / _HEADER_TEX_H
+	var metal := AtlasTexture.new()
+	metal.atlas = src
+	metal.region = Rect2(0, 0, tw, line_y)
+	bar.texture = metal
+	bar.stretch_mode = TextureRect.STRETCH_SCALE
+	var rule_tex := AtlasTexture.new()
+	rule_tex.atlas = src
+	rule_tex.region = Rect2(0, line_y, tw, line_px)
+	_android_rule = TextureRect.new()
+	_android_rule.name = "HeaderRule"
+	_android_rule.texture = rule_tex
+	_android_rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_android_rule.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_android_rule.stretch_mode = TextureRect.STRETCH_SCALE
+	_android_rule.modulate = bar.modulate
+	_android_rule.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	add_child(_android_rule)
+	move_child(_android_rule, bar.get_index() + 1)
+
+
+func _covered_header_line_gap(bar_h: float, width: float) -> float:
+	var scale := maxf(width / _HEADER_TEX_W, bar_h / _HEADER_TEX_H)
+	var scaled_h := _HEADER_TEX_H * scale
+	var line_y := (bar_h - scaled_h) * 0.5 + (_HEADER_LINE_Y + _HEADER_LINE_PX) / _HEADER_TEX_H * scaled_h
+	return maxf(0.0, bar_h - line_y)
+
+
 func _layout_header_controls(header_h: float) -> void:
 	var w := size.x
 	var pad := clampf(w * 0.02, 8.0, 16.0)
 	var inner_h := header_h - 4.0
 	var btn_h := clampf(inner_h, 32.0, 44.0)
 	var top := 2.0
+	if Platform.is_android():
+		if btn_h > header_h - 8.0:
+			btn_h = header_h * 0.70
+		top = (header_h - btn_h) * 0.5
 	var logo_w := clampf(w * 0.28, 88.0, 140.0)
 	var logo: TextureRect = $Header/Logo
 	logo.offset_left = pad
@@ -643,6 +729,8 @@ func _refresh_lock_state() -> void:
 func _on_desk_stand(active: bool) -> void:
 	$Header.visible = not active
 	$HeaderBar.visible = not active
+	if _android_rule:
+		_android_rule.visible = not active
 	title_band.visible = not active
 	nav_bar.visible = not active
 	unlock_button.visible = not active
