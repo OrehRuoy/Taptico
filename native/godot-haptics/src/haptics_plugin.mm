@@ -224,7 +224,7 @@ static id g_metric_subscriber = nil;
             if (engine != nil && error == nil) {
                 // Set before the first start. They stay set across later stop/start cycles.
                 engine.playsHapticsOnly = YES;
-                engine.isAutoShutdownEnabled = YES;
+                engine.autoShutdownEnabled = YES;
                 __weak TapticoHaptics *weakSelf = self;
                 // Handlers are not the main thread. Only flag a restart; never nil the engine here.
                 engine.resetHandler = ^{
@@ -282,7 +282,7 @@ static id g_metric_subscriber = nil;
         }
         @try {
             engine.playsHapticsOnly = YES;
-            engine.isAutoShutdownEnabled = YES;
+            engine.autoShutdownEnabled = YES;
             NSError *error = nil;
             BOOL started = [engine startAndReturnError:&error];
             if (!started || error != nil) {
