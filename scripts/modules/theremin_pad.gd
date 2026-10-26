@@ -42,10 +42,10 @@ func _ready() -> void:
 	_fx.z_index = 12
 	_fx.draw.connect(_draw_finger_fx)
 	add_child(_fx)
-	_labels["brighter"] = _make_axis_label("BRIGHTER")
-	_labels["warmer"] = _make_axis_label("WARMER")
-	_labels["lower"] = _make_axis_label("LOWER")
-	_labels["higher"] = _make_axis_label("HIGHER")
+	_labels["brighter"] = _make_axis_label(tr("PAD_BRIGHTER"))
+	_labels["warmer"] = _make_axis_label(tr("PAD_WARMER"))
+	_labels["lower"] = _make_axis_label(tr("PAD_LOWER"))
+	_labels["higher"] = _make_axis_label(tr("PAD_HIGHER"))
 	_setup_noise()
 	resized.connect(_layout)
 	AppSettings.changed.connect(_on_settings_changed)
@@ -103,6 +103,8 @@ func _place_axis_labels(center: Vector2) -> void:
 	higher.size = Vector2(w, h)
 	higher.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	higher.position = Vector2(center.x + r + gap, center.y - h * 0.5)
+	for axis_lab in _labels.values():
+		TextFit.fit(axis_lab, 13, 0.75, 110.0)
 
 
 func _setup_noise() -> void:

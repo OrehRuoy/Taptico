@@ -182,6 +182,7 @@ func _layout_chrome() -> void:
 	hint_label.offset_bottom = title_h
 	_icon_size = clampf(minf(size.x, size.y) * 0.07, 48.0, 72.0)
 	_update_nav_styles()
+	_fit_chrome_text()
 
 
 func _layout_android_header(safe: Vector4, content_h: float, title_h: float, nav_h: float, stage_inset: float) -> void:
@@ -349,7 +350,7 @@ func _build_nav() -> void:
 		if tex:
 			Chroma.apply(btn, tex, 0.0, 256)
 		var lab := Label.new()
-		lab.text = str(mod.get("short", ""))
+		lab.text = ModuleRegistry.display_short(mod)
 		lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lab.add_theme_font_size_override("font_size", 10)
 		lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -391,6 +392,15 @@ func _nav_index_at(global_pos: Vector2) -> int:
 		if col and col.get_global_rect().grow(4.0).has_point(global_pos):
 			return i
 	return -1
+
+
+func _fit_chrome_text() -> void:
+	var chip_width := _icon_size + 10.0
+	for lab in _nav_labels:
+		TextFit.fit(lab, 10, 0.75, chip_width)
+	TextFit.fit(title_label, 22)
+	TextFit.fit(hint_label, 12)
+	TextFit.fit(subtitle_label, 11)
 
 
 func _style_nav_button(button: TextureButton, active: bool, locked: bool) -> void:
@@ -438,8 +448,8 @@ func _process(delta: float) -> void:
 	if ceili(left) != ceili(before):
 		_set_trial_subtitle(left)
 	if left <= 0.0:
-		var name := str(ModuleRegistry.get_module(_current_index).get("name", ""))
-		_expire_trial(name)
+		var toy_name := ModuleRegistry.display_name(ModuleRegistry.get_module(_current_index))
+		_expire_trial(toy_name)
 
 
 func _trial_clock_running() -> bool:
@@ -467,7 +477,8 @@ func _stop_trial_clock() -> void:
 func _set_trial_subtitle(seconds: float) -> void:
 	var total := ceili(maxf(seconds, 0.0))
 	total = mini(total, int(EntitlementStore.TRIAL_SECONDS))
-	subtitle_label.text = "FREE TRY  %d:%02d" % [int(total / 60.0), total % 60]
+	subtitle_label.text = tr("BADGE_FREE_TRY") % [int(total / 60.0), total % 60]
+	_fit_chrome_text()
 
 
 func _expire_trial(module_name: String) -> void:
@@ -476,7 +487,8 @@ func _expire_trial(module_name: String) -> void:
 	for key in _module_instances:
 		var inst: FidgetModule = _module_instances[key]
 		inst.deactivate()
-	subtitle_label.text = "LOCKED"
+	subtitle_label.text = tr("BADGE_LOCKED")
+	_fit_chrome_text()
 	_update_nav_styles()
 	_present_paywall(module_name, true)
 
@@ -505,7 +517,7 @@ func _show_module(index: int, track: bool = true) -> void:
 	var module_id := str(mod.get("id", ""))
 	var unlocked := EntitlementStore.is_module_unlocked(module_id)
 	if not unlocked and EntitlementStore.trial_seconds_left(module_id) <= 0.0:
-		_present_paywall(str(mod.get("name", "")), true)
+		_present_paywall(ModuleRegistry.display_name(mod), true)
 		_update_nav_styles()
 		return
 	for key in _module_instances:
@@ -527,13 +539,14 @@ func _show_module(index: int, track: bool = true) -> void:
 	var active: FidgetModule = _module_instances[scene_path]
 	active.activate()
 	_current_index = index
-	title_label.text = str(mod.get("name", ""))
+	title_label.text = ModuleRegistry.display_name(mod)
 	if not unlocked and bool(mod.get("premium", false)):
 		_begin_trial(module_id)
 	else:
 		_stop_trial_clock()
-		subtitle_label.text = "FREE" if not bool(mod.get("premium", false)) else "PREMIUM"
-	hint_label.text = str(mod.get("hint", ""))
+		subtitle_label.text = tr("BADGE_FREE") if not bool(mod.get("premium", false)) else tr("BADGE_PREMIUM")
+	hint_label.text = ModuleRegistry.display_hint(mod)
+	_fit_chrome_text()
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_update_nav_styles()
 	if track:

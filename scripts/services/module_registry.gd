@@ -6,6 +6,7 @@ const FREE_MODULES: Array[String] = ["combination_lock", "toggle_switches", "mag
 const MODULES: Array[Dictionary] = [
 	{
 		"id": "combination_lock",
+		"key": "TOY_LOCK",
 		"name": "Combination Lock",
 		"short": "Lock",
 		"icon": "res://assets/modules/nav_lock.png",
@@ -15,6 +16,7 @@ const MODULES: Array[Dictionary] = [
 	},
 	{
 		"id": "toggle_switches",
+		"key": "TOY_SWITCH",
 		"name": "Toggle Switches",
 		"short": "Switches",
 		"icon": "res://assets/modules/nav_switch.png",
@@ -24,6 +26,7 @@ const MODULES: Array[Dictionary] = [
 	},
 	{
 		"id": "bearing_chamber",
+		"key": "TOY_BEARING",
 		"name": "Bearing Chamber",
 		"short": "Bearings",
 		"icon": "res://assets/modules/nav_bearings.png",
@@ -33,6 +36,7 @@ const MODULES: Array[Dictionary] = [
 	},
 	{
 		"id": "theremin_pad",
+		"key": "TOY_PAD",
 		"name": "Ambient Pad",
 		"short": "Pad",
 		"icon": "res://assets/modules/nav_pad.png",
@@ -42,6 +46,7 @@ const MODULES: Array[Dictionary] = [
 	},
 	{
 		"id": "key_matrix",
+		"key": "TOY_KEYS",
 		"name": "Key Matrix",
 		"short": "Keys",
 		"icon": "res://assets/modules/nav_keys.png",
@@ -51,6 +56,7 @@ const MODULES: Array[Dictionary] = [
 	},
 	{
 		"id": "magnetic_slider",
+		"key": "TOY_SLIDER",
 		"name": "Magnetic Slider",
 		"short": "Slider",
 		"icon": "res://assets/modules/nav_slider.png",
@@ -60,6 +66,7 @@ const MODULES: Array[Dictionary] = [
 	},
 	{
 		"id": "metal_spinner",
+		"key": "TOY_SPINNER",
 		"name": "Metal Spinner",
 		"short": "Spinner",
 		"icon": "res://assets/modules/nav_spinner.png",
@@ -69,6 +76,7 @@ const MODULES: Array[Dictionary] = [
 	},
 	{
 		"id": "clicker_pen",
+		"key": "TOY_PEN",
 		"name": "Clicker Pen",
 		"short": "Pen",
 		"icon": "res://assets/modules/nav_pen.png",
@@ -78,6 +86,7 @@ const MODULES: Array[Dictionary] = [
 	},
 	{
 		"id": "desk_cube",
+		"key": "TOY_CUBE",
 		"name": "Desk Cube",
 		"short": "Cube",
 		"icon": "res://assets/modules/nav_cube.png",
@@ -87,6 +96,7 @@ const MODULES: Array[Dictionary] = [
 	},
 	{
 		"id": "infinity_cube",
+		"key": "TOY_INFINITY",
 		"name": "Infinity Cube",
 		"short": "Infinity",
 		"icon": "res://assets/modules/nav_infinity.png",
@@ -96,6 +106,7 @@ const MODULES: Array[Dictionary] = [
 	},
 	{
 		"id": "zipper",
+		"key": "TOY_ZIPPER",
 		"name": "Zipper",
 		"short": "Zipper",
 		"icon": "res://assets/modules/nav_zipper.png",
@@ -105,6 +116,7 @@ const MODULES: Array[Dictionary] = [
 	},
 	{
 		"id": "dimple_plate",
+		"key": "TOY_DIMPLE",
 		"name": "Dimple Plate",
 		"short": "Dimples",
 		"icon": "res://assets/modules/nav_dimple.png",
@@ -114,6 +126,7 @@ const MODULES: Array[Dictionary] = [
 	},
 	{
 		"id": "desk_putty",
+		"key": "TOY_PUTTY",
 		"name": "Desk Putty",
 		"short": "Putty",
 		"icon": "res://assets/modules/nav_putty.png",
@@ -123,6 +136,18 @@ const MODULES: Array[Dictionary] = [
 		"hidden": true, # Keep the scene; hide from nav until we ship it.
 	},
 ]
+
+
+func display_name(mod: Dictionary) -> String:
+	return tr(str(mod.get("key", "")) + "_NAME")
+
+
+func display_short(mod: Dictionary) -> String:
+	return tr(str(mod.get("key", "")) + "_SHORT")
+
+
+func display_hint(mod: Dictionary) -> String:
+	return tr(str(mod.get("key", "")) + "_HINT")
 
 
 func _shipped() -> Array[Dictionary]:

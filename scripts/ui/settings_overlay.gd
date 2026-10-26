@@ -20,6 +20,8 @@ var _opened_at_ms: int = 0
 var _shell: Control
 var _frame: TextureRect
 var _title: TextureRect
+var _title_label: Label
+var _hint_lab: Label
 var _close: TextureButton
 var _scroll: ScrollContainer
 var _col: VBoxContainer
@@ -96,6 +98,17 @@ func _build() -> void:
 	_title.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_shell.add_child(_title)
+	_title_label = Label.new()
+	_title_label.text = tr("SETTINGS_TITLE")
+	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_title_label.add_theme_font_size_override("font_size", 28)
+	_title_label.add_theme_color_override("font_color", Color(0.914, 0.769, 0.416))
+	_title_label.add_theme_color_override("font_shadow_color", Color(0.05, 0.04, 0.03, 0.8))
+	_title_label.add_theme_constant_override("shadow_offset_y", 1)
+	_title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_title_label.visible = false
+	_shell.add_child(_title_label)
 
 	_close = TextureButton.new()
 	Chroma.apply(_close, CLOSE_TEX)
@@ -117,15 +130,15 @@ func _build() -> void:
 	_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.add_child(_col)
 
-	_col.add_child(_section_label("Hands"))
+	_col.add_child(_section_label(tr("SETTINGS_HANDS")))
 	var reach_row := HBoxContainer.new()
 	reach_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	reach_row.add_theme_constant_override("separation", 8)
 	reach_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var reach_modes := [
-		[ReachSettings.Mode.LEFT, "Left"],
-		[ReachSettings.Mode.RIGHT, "Right"],
-		[ReachSettings.Mode.TWO_HAND, "Both"],
+		[ReachSettings.Mode.LEFT, tr("SETTINGS_LEFT")],
+		[ReachSettings.Mode.RIGHT, tr("SETTINGS_RIGHT")],
+		[ReachSettings.Mode.TWO_HAND, tr("SETTINGS_BOTH_HANDS")],
 	]
 	for item in reach_modes:
 		var btn := Button.new()
@@ -138,15 +151,15 @@ func _build() -> void:
 		_reach_buttons[int(item[0])] = btn
 	_col.add_child(reach_row)
 
-	_col.add_child(_section_label("Sound and haptics"))
+	_col.add_child(_section_label(tr("SETTINGS_SOUND_HAPTICS")))
 	var feel_row := HBoxContainer.new()
 	feel_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	feel_row.add_theme_constant_override("separation", 8)
 	feel_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var feel_modes := [
-		[AppSettings.OutputMode.HEADPHONES, "Headphones"],
-		[AppSettings.OutputMode.HAPTICS, "Haptics only"],
-		[AppSettings.OutputMode.BOTH, "Both"],
+		[AppSettings.OutputMode.HEADPHONES, tr("SETTINGS_HEADPHONES")],
+		[AppSettings.OutputMode.HAPTICS, tr("SETTINGS_HAPTICS_ONLY")],
+		[AppSettings.OutputMode.BOTH, tr("SETTINGS_BOTH_OUTPUT")],
 	]
 	for item in feel_modes:
 		var feel_btn := Button.new()
@@ -168,26 +181,27 @@ func _build() -> void:
 		_android_haptic_hint.visible = false
 		_col.add_child(_android_haptic_hint)
 
-	_vol_lab = _section_label("Volume")
+	_vol_lab = _section_label(tr("SETTINGS_VOLUME") % int(round(AppSettings.sound_volume * 100.0)))
 	_col.add_child(_vol_lab)
 	_vol = _make_slider()
 	_vol.value_changed.connect(func(v: float) -> void: AppSettings.set_sound_volume(v / 100.0))
 	_col.add_child(_vol)
 
-	_haptic_lab = _section_label("Haptics")
+	_haptic_lab = _section_label(tr("SETTINGS_HAPTICS") % _level_text(AppSettings.haptic_label()))
 	_col.add_child(_haptic_lab)
 	_haptic = _make_slider()
 	_haptic.value_changed.connect(func(v: float) -> void: AppSettings.set_haptic_strength(v / 100.0))
 	_col.add_child(_haptic)
 
-	_shake_lab = _section_label("Shake / tilt")
+	_shake_lab = _section_label(tr("SETTINGS_SHAKE") % _level_text(AppSettings.shake_label()))
 	_col.add_child(_shake_lab)
 	_shake = _make_slider()
 	_shake.value_changed.connect(func(v: float) -> void: AppSettings.set_shake_strength(v / 100.0))
 	_col.add_child(_shake)
 
 	var hint := Label.new()
-	hint.text = "Headphones is sound only. Haptics only is silent. Both plays sound and haptics. Shake / tilt moves the bearings."
+	hint.text = tr("SETTINGS_HINT")
+	_hint_lab = hint
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.add_theme_font_size_override("font_size", 12)
@@ -227,6 +241,19 @@ func _build() -> void:
 
 	_refresh()
 	_layout_card()
+
+
+func _level_text(english: String) -> String:
+	match english:
+		"Off":
+			return tr("LEVEL_OFF")
+		"Low":
+			return tr("LEVEL_LOW")
+		"Medium":
+			return tr("LEVEL_MEDIUM")
+		"High":
+			return tr("LEVEL_HIGH")
+	return english
 
 
 func _section_label(text: String) -> Label:
@@ -331,6 +358,27 @@ func _layout_card() -> void:
 	_shell.position = origin + (bounds - _shell.size) * 0.5
 	_title.position = Vector2(ix, iy_t + 2.0)
 	_title.size = Vector2(inner_w, header_h)
+	var show_title_image := Locale.is_english()
+	_title.visible = show_title_image
+	if _title_label:
+		_title_label.visible = not show_title_image
+		_title_label.position = _title.position
+		_title_label.size = _title.size
+		if not show_title_image:
+			TextFit.fit(_title_label, 28)
+	if _hint_lab:
+		TextFit.fit(_hint_lab, 12)
+	TextFit.fit(_vol_lab, 14)
+	TextFit.fit(_haptic_lab, 14)
+	TextFit.fit(_shake_lab, 14)
+	for reach_btn in _reach_buttons.values():
+		if reach_btn is Button:
+			TextFit.fit_button(reach_btn, 16)
+	for feel_btn in _feel_buttons.values():
+		if feel_btn is Button:
+			TextFit.fit_button(feel_btn, 16)
+	if _android_haptic_hint:
+		TextFit.fit(_android_haptic_hint, 12)
 	_close.position = Vector2(ix + inner_w - close_s - 2.0, iy_t + 6.0)
 	_close.size = Vector2(close_s, close_s)
 	_scroll.position = Vector2(ix + 4.0, iy_t + header_h + 6.0)
@@ -347,15 +395,15 @@ func _refresh() -> void:
 		return
 	_vol.editable = AppSettings.output_mode != AppSettings.OutputMode.HAPTICS
 	_vol.set_value_no_signal(AppSettings.sound_volume * 100.0)
-	_vol_lab.text = "Volume  %d%%" % int(round(AppSettings.sound_volume * 100.0))
+	_vol_lab.text = tr("SETTINGS_VOLUME") % int(round(AppSettings.sound_volume * 100.0))
 	_haptic.editable = AppSettings.output_mode != AppSettings.OutputMode.HEADPHONES
 	_haptic.set_value_no_signal(AppSettings.haptic_strength * 100.0)
 	if AppSettings.output_mode == AppSettings.OutputMode.HEADPHONES:
-		_haptic_lab.text = "Haptics  Off"
+		_haptic_lab.text = tr("SETTINGS_HAPTICS") % tr("LEVEL_OFF")
 	else:
-		_haptic_lab.text = "Haptics  %s" % AppSettings.haptic_label()
+		_haptic_lab.text = tr("SETTINGS_HAPTICS") % _level_text(AppSettings.haptic_label())
 	_shake.set_value_no_signal(AppSettings.shake_strength * 100.0)
-	_shake_lab.text = "Shake / tilt  %s" % AppSettings.shake_label()
+	_shake_lab.text = tr("SETTINGS_SHAKE") % _level_text(AppSettings.shake_label())
 	_refresh_reach()
 	_refresh_feel()
 	_refresh_android_haptic_hint()
@@ -365,10 +413,10 @@ func _refresh_android_haptic_hint() -> void:
 	if _android_haptic_hint == null:
 		return
 	if not Haptics.has_vibrator():
-		_android_haptic_hint.text = "This device has no vibration motor. Sound still works."
+		_android_haptic_hint.text = tr("SETTINGS_NO_VIBRATOR")
 		_android_haptic_hint.visible = true
 	elif Haptics.android_touch_feedback_off():
-		_android_haptic_hint.text = "If you feel nothing, check Android Settings → Sound & vibration → Vibration & haptics."
+		_android_haptic_hint.text = tr("SETTINGS_ANDROID_HAPTICS_OFF")
 		_android_haptic_hint.visible = true
 	else:
 		_android_haptic_hint.visible = false

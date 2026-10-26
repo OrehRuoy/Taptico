@@ -66,7 +66,7 @@ func _ready() -> void:
 	_mesh.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	add_child(_mesh)
 	_reset = Button.new()
-	_reset.text = "Reset"
+	_reset.text = tr("COMMON_RESET")
 	_reset.focus_mode = Control.FOCUS_NONE
 	_reset.pressed.connect(_knead_reset)
 	_reset.z_index = 20
@@ -135,6 +135,7 @@ func _layout() -> void:
 	_reset.add_theme_stylebox_override("normal", sb)
 	_reset.add_theme_color_override("font_color", DrawKit.GOLD)
 	_reset.add_theme_font_size_override("font_size", 14)
+	TextFit.fit_button(_reset, 14)
 
 
 func _load_png(path: String) -> Texture2D:

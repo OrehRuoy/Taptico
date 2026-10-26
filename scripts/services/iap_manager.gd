@@ -117,15 +117,15 @@ func purchase_lifetime() -> void:
 			_finish_op()
 			purchase_succeeded.emit()
 		else:
-			purchase_failed.emit("Purchases are not available on this device.")
+			purchase_failed.emit(tr("IAP_UNAVAILABLE"))
 		return
 	if not is_price_ready():
-		purchase_failed.emit("The App Store price has not loaded yet. Check your connection and try again.")
+		purchase_failed.emit(tr("IAP_PRICE_NOT_LOADED"))
 		return
 	_begin_op()
 	purchase_started.emit()
 	_plugin.call("purchase", PRODUCT_LIFETIME)
-	_await_timeout("The App Store did not respond. Check your connection and try again.")
+	_await_timeout(tr("IAP_TIMEOUT_APPSTORE"))
 
 
 func restore_purchases() -> void:
@@ -143,7 +143,7 @@ func restore_purchases() -> void:
 	_begin_op()
 	purchase_started.emit()
 	_plugin.call("restore")
-	_await_timeout("Restore timed out. Check your connection and try again.")
+	_await_timeout(tr("IAP_TIMEOUT_RESTORE"))
 
 
 func request_review() -> void:
@@ -210,9 +210,7 @@ func _on_native_purchase_updated(_product_id: String = "") -> void:
 
 func _on_native_purchase_failed(message: String = "") -> void:
 	_finish_op()
-	if message.is_empty():
-		message = "Purchase could not be completed."
-	purchase_failed.emit(message)
+	purchase_failed.emit(_store_message(message, "IAP_FAILED"))
 
 
 func _on_native_entitlements_updated(unlocked: bool = false) -> void:
@@ -234,9 +232,7 @@ func _on_native_products_loaded(price: String = "") -> void:
 func _on_native_products_failed(message: String = "") -> void:
 	_price_ready = false
 	_price_display = ""
-	if message.is_empty():
-		message = "Could not load App Store products. Check your connection."
-	products_failed.emit(message)
+	products_failed.emit(_store_message(message, "IAP_LOAD_FAILED_APPSTORE"))
 
 
 func _init_android_billing() -> void:
@@ -254,7 +250,7 @@ func _init_android_billing() -> void:
 func _on_billing_connect_error(_response_code: int, debug_message: String) -> void:
 	_billing_ready = false
 	push_warning("IAPManager billing connect error: %s" % debug_message)
-	products_failed.emit("Could not load Google Play products. Check your connection.")
+	products_failed.emit(tr("IAP_LOAD_FAILED_PLAY"))
 
 
 func _on_billing_connected() -> void:
@@ -278,13 +274,13 @@ func _run_billing_setup() -> void:
 		if _price_ready:
 			_billing_ready = true
 		else:
-			products_failed.emit("Could not load Google Play products. Check your connection.")
+			products_failed.emit(tr("IAP_LOAD_FAILED_PLAY"))
 	else:
 		push_warning(
 			"IAPManager: product details query failed: %s"
 			% str(details_result.get("debug_message", "unknown error"))
 		)
-		products_failed.emit("Could not load Google Play products. Check your connection.")
+		products_failed.emit(tr("IAP_LOAD_FAILED_PLAY"))
 	var owned := await _query_owned_purchases(false)
 	_billing_setup_running = false
 	if _android_restore_after_setup:
@@ -298,7 +294,7 @@ func _run_billing_setup() -> void:
 
 func _purchase_android() -> void:
 	if _billing == null or not _billing_ready:
-		purchase_failed.emit("Google Play isn't ready yet. Check your connection and try again.")
+		purchase_failed.emit(tr("IAP_PLAY_NOT_READY"))
 		return
 	_begin_op()
 	purchase_started.emit()
@@ -310,10 +306,10 @@ func _purchase_android() -> void:
 	if code != BillingClient.BillingResponseCode.OK:
 		_pending_android_purchase = false
 		_finish_op()
-		var message := str(result.get("debug_message", "")).strip_edges()
-		if message.is_empty():
-			message = "Purchase could not be completed."
-		purchase_failed.emit(message)
+		var debug_message := str(result.get("debug_message", "")).strip_edges()
+		if not debug_message.is_empty():
+			push_warning("IAPManager purchase failed: %s" % debug_message)
+		purchase_failed.emit(tr("IAP_FAILED"))
 		return
 	_monitor_android_purchase_timeout()
 
@@ -326,7 +322,7 @@ func _monitor_android_purchase_timeout() -> void:
 	_pending_android_purchase = false
 	_android_purchase_timed_out = true
 	_finish_op()
-	purchase_failed.emit("The store did not respond. Check your connection and try again.")
+	purchase_failed.emit(tr("IAP_TIMEOUT_STORE"))
 
 
 func _restore_android() -> void:
@@ -336,7 +332,7 @@ func _restore_android() -> void:
 			_begin_op()
 			purchase_started.emit()
 			return
-		purchase_failed.emit("Google Play isn't ready yet. Check your connection and try again.")
+		purchase_failed.emit(tr("IAP_PLAY_NOT_READY"))
 		return
 	_begin_op()
 	purchase_started.emit()
@@ -401,7 +397,7 @@ func _on_android_purchase_updated(result: Dictionary) -> void:
 		_android_purchase_pending = false
 		if _busy:
 			_finish_op()
-		purchase_failed.emit("Purchase cancelled.")
+		purchase_failed.emit(tr("IAP_CANCELLED"))
 		return
 	if code == BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED:
 		_pending_android_purchase = false
@@ -416,16 +412,16 @@ func _on_android_purchase_updated(result: Dictionary) -> void:
 			_android_purchase_pending = true
 			if _busy:
 				_finish_op()
-			purchase_failed.emit("Payment pending. Taptico unlocks when Google Play confirms it.")
+			purchase_failed.emit(tr("IAP_PENDING"))
 			return
 		if _pending_android_purchase:
 			_pending_android_purchase = false
 			if _busy:
 				_finish_op()
-			var message := str(result.get("debug_message", "")).strip_edges()
-			if message.is_empty():
-				message = "Purchase could not be completed."
-			purchase_failed.emit(message)
+			var debug_message := str(result.get("debug_message", "")).strip_edges()
+			if not debug_message.is_empty():
+				push_warning("IAPManager purchase failed: %s" % debug_message)
+			purchase_failed.emit(tr("IAP_FAILED"))
 		return
 	for purchase in result.get("purchases", []):
 		if typeof(purchase) != TYPE_DICTIONARY:
@@ -437,7 +433,7 @@ func _on_android_purchase_updated(result: Dictionary) -> void:
 			_android_purchase_pending = true
 			if _busy:
 				_finish_op()
-			purchase_failed.emit("Payment pending. Taptico unlocks when Google Play confirms it.")
+			purchase_failed.emit(tr("IAP_PENDING"))
 			continue
 		if state != BillingClient.PurchaseState.PURCHASED:
 			continue
@@ -451,7 +447,7 @@ func _finish_android_purchase(purchase: Dictionary) -> void:
 				_pending_android_purchase = false
 				if _busy:
 					_finish_op()
-				purchase_failed.emit("Purchase could not be completed.")
+				purchase_failed.emit(tr("IAP_FAILED"))
 			return
 	EntitlementStore.set_lifetime_unlocked(true)
 	if _android_purchase_timed_out:
@@ -578,6 +574,23 @@ func _on_android_review_launched() -> void:
 func _on_android_review_failed() -> void:
 	# A Play quota miss or a failed sheet is quiet. Do not open a browser.
 	_android_review_active = false
+
+
+func _store_message(message: String, fallback_key: String) -> String:
+	# Known StoreKit English literals map to keys. Apple's own localizedDescription is already translated.
+	var known := {
+		"Purchase could not be completed.": "IAP_FAILED",
+		"Purchase cancelled.": "IAP_CANCELLED",
+		"Purchases are not allowed on this device.": "IAP_NOT_ALLOWED",
+		"This product is not available in your App Store region.": "IAP_REGION",
+		"No connection to the App Store. Check your network and try again.": "IAP_NO_CONNECTION_APPSTORE",
+		"Could not load App Store products. Check your connection.": "IAP_LOAD_FAILED_APPSTORE",
+	}
+	if message.is_empty():
+		return tr(fallback_key)
+	if known.has(message):
+		return tr(str(known[message]))
+	return message
 
 
 func _request_review_bridge() -> void:

@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Taptico"
 config/description="Haptic Fidget & Focus Tool"
-config/version="1.0.2"
+config/version="1.0.3"
 config/quit_on_go_back=false
 run/main_scene="res://scenes/main/Main.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
@@ -27,6 +27,7 @@ general/ios/session_category=3
 
 [autoload]
 
+Locale="*res://scripts/services/locale.gd"
 Platform="*res://scripts/services/platform.gd"
 Chroma="*res://scripts/core/chroma.gd"
 MagentaKey="*res://scripts/core/magenta_key.gd"
@@ -40,6 +41,11 @@ ReachSettings="*res://scripts/services/reach_settings.gd"
 ModuleRegistry="*res://scripts/services/module_registry.gd"
 EnjoyPrompt="*res://scripts/services/enjoy_prompt.gd"
 UnlockNudge="*res://scripts/services/unlock_nudge.gd"
+
+[internationalization]
+
+locale/fallback="en"
+locale/include_text_server_data=true
 
 [display]
 

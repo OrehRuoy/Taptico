@@ -68,6 +68,9 @@ jobs:
           test -f scripts/overlay_ios_app_icons.sh
           test -f scripts/verify_ios_ipa_plugins.sh
           test -f tools/ios/patch_xcode_signing.py
+          python3 tools/ios/add_store_localizations.py --self-test
+          grep -q 'include_filter="translations/\*"' export_presets.cfg
+          grep -q 'CFBundleLocalizations' export_presets.cfg
           if grep -q 'res://addons/GodotFirebaseiOS/plugin.cfg' project.godot; then
             echo "::error::Remove the GodotFirebaseiOS editor plugin from project.godot"
             exit 1
@@ -149,11 +152,16 @@ jobs:
 
       - name: Export iOS Xcode project
         run: |
+          set -euo pipefail
           mkdir -p build
           sed -i '' 's|application/export_project_only=false|application/export_project_only=true|' export_presets.cfg
           grep 'application/export_project_only=' export_presets.cfg
           "$GODOT_BIN" --headless --path . --import || true
-          "$GODOT_BIN" --headless --path . --export-release "iOS (TestFlight IPA)" "build/Taptico.ipa"
+          "$GODOT_BIN" --headless --path . --export-release "iOS (TestFlight IPA)" "build/Taptico.ipa" 2>&1 | tee "$RUNNER_TEMP/godot-export.log"
+          python3 tools/ios/add_store_localizations.py --check-export-log "$RUNNER_TEMP/godot-export.log"
+          python3 tools/ios/add_store_localizations.py build
+          PCK=$(find build -name 'Taptico.pck' | head -1); test -n "$PCK"
+          python3 tools/ios/add_store_localizations.py --verify-pck "$PCK"
           test -f "build/Taptico.xcodeproj/project.pbxproj"
           if grep -qE -- '-Wl-U_|-Wl -weak-l' build/Taptico.xcodeproj/project.pbxproj; then
             echo "ERROR: corrupted -Wl linker flags in project.pbxproj" && exit 1
@@ -199,6 +207,10 @@ jobs:
             STRIP_INSTALLED_PRODUCT=YES \
             COPY_PHASE_STRIP=YES \
             archive
+          APP=$(find build -path '*.xcarchive/Products/Applications/*.app' -type d | head -1)
+          find "$APP" -name '*.lproj' | sort
+          python3 tools/ios/add_store_localizations.py --verify-app "$APP"
+          for lang in en de fr es pt it ja ko zh-Hant; do plutil -p "$APP/$lang.lproj/InfoPlist.strings"; done
           APP_BIN="build/Taptico.xcarchive/Products/Applications/Taptico.app/Taptico"
           test -f "$APP_BIN"
           EXPORTED=$(nm -gU "$APP_BIN" 2>/dev/null | grep -c 'FirebaseAuth\|FIRApp\|FirebaseCore' || true)

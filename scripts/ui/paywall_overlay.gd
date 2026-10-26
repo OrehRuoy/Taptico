@@ -24,6 +24,7 @@ var _opened_at_ms: int = 0
 var _close_x: TextureButton
 var _buy_plate: TextureRect
 var _buy_caption: Label
+var _status_is_loading: bool = false
 
 
 func _ready() -> void:
@@ -106,11 +107,16 @@ func _style() -> void:
 		hero.custom_minimum_size = Vector2(0, 168)
 		hero.show()
 	if headline:
+		headline.text = tr("PAYWALL_HEADLINE")
 		headline.hide()
 	if features:
 		features.show()
 		features.text = _lifetime_features()
 		features.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		TextFit.fit(features, 13)
+	if restore_button:
+		restore_button.text = tr("PAYWALL_RESTORE")
+		TextFit.fit_button(restore_button, 14)
 	if message_label:
 		message_label.hide()
 		message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -120,7 +126,8 @@ func _style() -> void:
 		message_label.add_theme_color_override("font_outline_color", Color(0.08, 0.06, 0.04, 0.55))
 		message_label.add_theme_constant_override("outline_size", 3)
 		message_label.custom_minimum_size = Vector2(0, 40)
-		message_label.text = "You already own Premium"
+		message_label.text = tr("PAYWALL_OWNED")
+		TextFit.fit(message_label, 18)
 	if price_label:
 		price_label.show()
 		price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -183,7 +190,8 @@ func _premium_cta(button: Button) -> void:
 	_buy_caption.add_theme_color_override("font_outline_color", Color(0.98, 0.86, 0.48, 0.35))
 	_buy_caption.add_theme_constant_override("outline_size", 2)
 	_buy_caption.add_theme_font_size_override("font_size", 22)
-	_buy_caption.text = "Get Premium"
+	_buy_caption.text = tr("PAYWALL_BUY")
+	TextFit.fit(_buy_caption, 22)
 	if not button.button_down.is_connected(_on_buy_press_visual):
 		button.button_down.connect(_on_buy_press_visual)
 	if not button.button_up.is_connected(_on_buy_release_visual):
@@ -252,6 +260,16 @@ func _layout_sheet() -> void:
 		_close_x.size = Vector2(cs, cs)
 	if hero:
 		hero.custom_minimum_size = Vector2(0, clampf((card_h - iy_t - iy_b) * 0.40, 148.0, 200.0))
+	if features:
+		TextFit.fit(features, 13)
+	if restore_button:
+		TextFit.fit_button(restore_button, 14)
+	if status_label:
+		TextFit.fit(status_label, 12)
+	if message_label:
+		TextFit.fit(message_label, 18)
+	if _buy_caption:
+		TextFit.fit(_buy_caption, 22)
 
 
 func show_paywall(module_name: String = "", trial_ended: bool = false) -> void:
@@ -262,9 +280,10 @@ func show_paywall(module_name: String = "", trial_ended: bool = false) -> void:
 	if features:
 		features.show()
 		if trial_ended and not module_name.is_empty() and not EntitlementStore.has_lifetime():
-			features.text = "Free try of %s is over.\nBuy Lifetime to keep using this one and the other locked fidgets." % module_name
+			features.text = tr("PAYWALL_TRIAL_OVER") % module_name
 		else:
 			features.text = _lifetime_features()
+		TextFit.fit(features, 13)
 	_refresh_price()
 	_refresh_owned()
 	z_index = 200
@@ -295,13 +314,13 @@ func _refresh_price() -> void:
 		price_label.text = price
 		price_label.visible = not EntitlementStore.has_lifetime() and not price.is_empty()
 	if OS.has_feature("editor") and not (OS.get_name() == "iOS"):
-		status_label.text = ""
+		_set_status("")
 	elif IAPManager.is_price_ready():
-		status_label.text = ""
+		_set_status("")
 	elif Platform.is_android():
-		status_label.text = "Loading price from Google Play…"
+		_set_status(tr("PAYWALL_LOADING_PLAY"), true)
 	else:
-		status_label.text = "Loading price from the App Store…"
+		_set_status(tr("PAYWALL_LOADING_APPSTORE"), true)
 	_update_buy_enabled()
 
 
@@ -327,9 +346,10 @@ func _refresh_owned() -> void:
 	if message_label:
 		message_label.visible = owned
 		if owned:
-			message_label.text = "You already own Premium"
-	if owned and status_label and status_label.text.begins_with("Loading"):
-		status_label.text = ""
+			message_label.text = tr("PAYWALL_OWNED")
+		TextFit.fit(message_label, 18)
+	if owned and _status_is_loading:
+		_set_status("")
 
 
 func _on_entitlements_changed() -> void:
@@ -366,9 +386,9 @@ func _set_busy(is_busy: bool) -> void:
 	close_button.disabled = false
 	if is_busy:
 		if Platform.is_android():
-			status_label.text = "Contacting Google Play…"
+			_set_status(tr("PAYWALL_CONTACTING_PLAY"), true)
 		else:
-			status_label.text = "Contacting the App Store…"
+			_set_status(tr("PAYWALL_CONTACTING_APPSTORE"), true)
 
 
 func _on_busy_changed(is_busy: bool) -> void:
@@ -380,8 +400,15 @@ func _lifetime_features() -> String:
 	for i in ModuleRegistry.get_module_count():
 		if bool(ModuleRegistry.get_module(i).get("premium", false)):
 			locked += 1
-	var noun := "fidget" if locked == 1 else "fidgets"
-	return "%d more %s.\nDesk Stand stays on for life." % [locked, noun]
+	return tr("PAYWALL_FEATURES") % locked
+
+
+func _set_status(text: String, loading: bool = false) -> void:
+	_status_is_loading = loading
+	if status_label == null:
+		return
+	status_label.text = text
+	TextFit.fit(status_label, 12)
 
 
 func _on_buy() -> void:
@@ -403,7 +430,7 @@ func _on_close() -> void:
 func _on_reset_testing() -> void:
 	EntitlementStore.clear_trials()
 	EntitlementStore.reset_lifetime()
-	status_label.text = "Unlock reset."
+	_set_status("Unlock reset.")
 	show_paywall()
 
 
@@ -413,30 +440,30 @@ func _on_purchase_started() -> void:
 
 func _on_success() -> void:
 	_set_busy(false)
-	status_label.text = "Thank you. Every module is unlocked."
+	_set_status(tr("PAYWALL_SUCCESS"))
 	await get_tree().create_timer(0.9).timeout
 	hide()
 
 
 func _on_failed(msg: String) -> void:
 	_set_busy(false)
-	status_label.text = msg
+	_set_status(msg)
 
 
 func _on_products_failed(msg: String) -> void:
 	_set_busy(false)
-	status_label.text = msg
+	_set_status(msg)
 	_update_buy_enabled()
 
 
 func _on_restore_done(success: bool) -> void:
 	_set_busy(false)
 	if success:
-		status_label.text = "Purchases restored."
+		_set_status(tr("PAYWALL_RESTORED"))
 		await get_tree().create_timer(0.9).timeout
 		hide()
 	else:
 		if Platform.is_android():
-			status_label.text = "No purchase found for this Google account."
+			_set_status(tr("PAYWALL_RESTORE_NONE_PLAY"))
 		else:
-			status_label.text = "No purchases found for this Apple ID."
+			_set_status(tr("PAYWALL_RESTORE_NONE_APPLE"))
