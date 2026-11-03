@@ -22,6 +22,7 @@ var _frame: TextureRect
 var _title: TextureRect
 var _title_label: Label
 var _hint_lab: Label
+var _more_btn: Button
 var _close: TextureButton
 var _scroll: ScrollContainer
 var _col: VBoxContainer
@@ -208,6 +209,17 @@ func _build() -> void:
 	hint.add_theme_color_override("font_color", Color(0.78, 0.80, 0.82))
 	_col.add_child(hint)
 
+	_col.add_child(_section_label(tr("SETTINGS_HELP")))
+	_more_btn = Button.new()
+	_more_btn.text = tr("SETTINGS_MORE_BY")
+	_more_btn.custom_minimum_size = Vector2(0, 50)
+	_more_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_more_btn.focus_mode = Control.FOCUS_ACCESSIBILITY
+	_more_btn.accessibility_name = _more_btn.text
+	_more_btn.pressed.connect(_on_more_by)
+	_style_toggle(_more_btn)
+	_col.add_child(_more_btn)
+
 	if EnjoyPrompt.debug_tools_enabled():
 		_col.add_child(_section_label("Debug"))
 		var preview := Button.new()
@@ -368,15 +380,17 @@ func _layout_card() -> void:
 			TextFit.fit(_title_label, 28)
 	if _hint_lab:
 		TextFit.fit(_hint_lab, 12)
+	if _more_btn:
+		TextFit.fit_button(_more_btn, 16, 0.7, true)
 	TextFit.fit(_vol_lab, 14)
 	TextFit.fit(_haptic_lab, 14)
 	TextFit.fit(_shake_lab, 14)
 	for reach_btn in _reach_buttons.values():
 		if reach_btn is Button:
-			TextFit.fit_button(reach_btn, 16)
+			TextFit.fit_button(reach_btn, 14, 0.62, true)
 	for feel_btn in _feel_buttons.values():
 		if feel_btn is Button:
-			TextFit.fit_button(feel_btn, 16)
+			TextFit.fit_button(feel_btn, 13, 0.62, true)
 	if _android_haptic_hint:
 		TextFit.fit(_android_haptic_hint, 12)
 	_close.position = Vector2(ix + inner_w - close_s - 2.0, iy_t + 6.0)
@@ -454,6 +468,7 @@ func _refresh_reach() -> void:
 			box.border_color = Color(0.84, 0.70, 0.44, 0.45)
 			btn.add_theme_color_override("font_color", Color(0.90, 0.86, 0.76))
 		btn.add_theme_font_size_override("font_size", 14)
+		TextFit.fit_button(btn, 14, 0.62, true)
 		btn.add_theme_stylebox_override("normal", box)
 		btn.add_theme_stylebox_override("hover", box)
 		btn.add_theme_stylebox_override("pressed", box)
@@ -478,6 +493,7 @@ func _refresh_feel() -> void:
 			box.border_color = Color(0.84, 0.70, 0.44, 0.45)
 			btn.add_theme_color_override("font_color", Color(0.90, 0.86, 0.76))
 		btn.add_theme_font_size_override("font_size", 13)
+		TextFit.fit_button(btn, 13, 0.62, true)
 		btn.add_theme_stylebox_override("normal", box)
 		btn.add_theme_stylebox_override("hover", box)
 		btn.add_theme_stylebox_override("pressed", box)
@@ -513,6 +529,13 @@ func _on_simulate_enjoy() -> void:
 func _on_reset_enjoy() -> void:
 	EnjoyPrompt.reset_for_debug()
 	AudioFeel.play_tick(0.8)
+
+
+func _on_more_by() -> void:
+	var url := Platform.developer_store_url()
+	if url.is_empty():
+		return
+	OS.shell_open(url)
 
 
 func _on_dim(event: InputEvent) -> void:

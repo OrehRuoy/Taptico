@@ -59,11 +59,13 @@ func present(preview: bool = false) -> void:
 		_email.text = ""
 	_device_lab.text = tr("ENJOY_DEVICE") % EnjoyPrompt.device_summary()
 	_refresh_crash_checkbox()
+	_close.accessibility_name = tr("ENJOY_CLOSE")
 	_show_page()
 	show()
 	move_to_front()
 	_opened_at_ms = Time.get_ticks_msec()
 	_layout_card()
+	_close.grab_focus()
 	await get_tree().process_frame
 	_layout_card()
 
@@ -103,6 +105,9 @@ func _build() -> void:
 	_close = TextureButton.new()
 	Chroma.apply(_close, CLOSE_TEX)
 	_empty_tex_button(_close)
+	_close.focus_mode = Control.FOCUS_ACCESSIBILITY
+	_close.accessibility_name = tr("ENJOY_CLOSE")
+	_close.tooltip_text = tr("ENJOY_CLOSE")
 	_close.pressed.connect(_on_close)
 	_shell.add_child(_close)
 
@@ -439,7 +444,7 @@ func _layout_card() -> void:
 	var inner_w := shell_w - ix * 2.0
 	var inner_h := shell_h - iy_t - iy_b
 	var header_h := 58.0
-	var close_s := 32.0
+	var close_s := 48.0
 	var close_gap := 10.0
 	var top_chrome := 4.0 + close_s + close_gap + header_h + 6.0
 	_col.custom_minimum_size = Vector2(inner_w, 0.0)

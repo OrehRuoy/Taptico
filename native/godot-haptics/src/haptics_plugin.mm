@@ -483,7 +483,89 @@ static std::string g_latest_crash_utf8;
 
 extern "C" {
 
+static BOOL TapticoViewIsGodotGameView(UIView *view) {
+    if (view == nil) {
+        return NO;
+    }
+    for (Class cls = [view class]; cls != Nil; cls = class_getSuperclass(cls)) {
+        if (cls == [UIView class] || cls == [UIResponder class] || cls == [NSObject class]) {
+            break;
+        }
+        if ([NSStringFromClass(cls) isEqualToString:@"GDTView"]) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
+static void TapticoConfigureFidgetAccessibility(UIView *view) {
+    // VoiceOver-only. These traits do not change hit testing while VoiceOver is off.
+    view.isAccessibilityElement = YES;
+    view.accessibilityTraits = view.accessibilityTraits | UIAccessibilityTraitAllowsDirectInteraction;
+    view.accessibilityLabel = @"Fidget area";
+}
+
+static BOOL TapticoApplyFidgetAccessibilityInView(UIView *view) {
+    if (view == nil) {
+        return NO;
+    }
+    if (TapticoViewIsGodotGameView(view)) {
+        TapticoConfigureFidgetAccessibility(view);
+        return YES;
+    }
+    BOOL found = NO;
+    for (UIView *child in view.subviews) {
+        if (TapticoApplyFidgetAccessibilityInView(child)) {
+            found = YES;
+        }
+    }
+    return found;
+}
+
+static BOOL TapticoApplyFidgetAccessibility(void) {
+    BOOL found = NO;
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (![scene isKindOfClass:[UIWindowScene class]]) {
+            continue;
+        }
+        UIWindowScene *windowScene = (UIWindowScene *)scene;
+        for (UIWindow *window in windowScene.windows) {
+            if (TapticoApplyFidgetAccessibilityInView(window)) {
+                found = YES;
+            }
+        }
+    }
+    return found;
+}
+
+static void TapticoTryFidgetAccessibility(int attempt) {
+    if (TapticoApplyFidgetAccessibility() || attempt >= 40) {
+        return;
+    }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        TapticoTryFidgetAccessibility(attempt + 1);
+    });
+}
+
+static id g_fidget_a11y_observer = nil;
+
+static void TapticoInstallFidgetAccessibility(void) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        g_fidget_a11y_observer = [[NSNotificationCenter defaultCenter]
+            addObserverForName:UIApplicationDidBecomeActiveNotification
+                        object:nil
+                         queue:[NSOperationQueue mainQueue]
+                    usingBlock:^(NSNotification *note) {
+                        (void)note;
+                        TapticoApplyFidgetAccessibility();
+                    }];
+    });
+    TapticoTryFidgetAccessibility(0);
+}
+
 static void haptics_start_on_main(void) {
+    TapticoInstallFidgetAccessibility();
     if (g_haptics == nil) {
         g_haptics = [[TapticoHaptics alloc] init];
     }

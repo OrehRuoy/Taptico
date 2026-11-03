@@ -128,6 +128,12 @@ func _style_chrome() -> void:
 	title_label.add_theme_constant_override("outline_size", 3)
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hint_label.add_theme_font_size_override("font_size", 16)
+	hint_label.add_theme_color_override("font_color", Color(0.97, 0.96, 0.93))
+	hint_label.add_theme_color_override("font_outline_color", Color(0.05, 0.04, 0.03, 0.85))
+	hint_label.add_theme_constant_override("outline_size", 4)
+	hint_label.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.03, 0.9))
+	hint_label.add_theme_constant_override("shadow_offset_y", 1)
 	_style_icon_button(settings_button)
 	_style_icon_button(unlock_button)
 	Chroma.apply(settings_button, settings_button.texture_normal, 0.0, 256)
@@ -154,7 +160,7 @@ func _layout_chrome() -> void:
 		return
 	var safe := _safe_margins()
 	var header_h := clampf(size.y * 0.075, 52.0, 78.0)
-	var title_h := clampf(size.y * 0.095, 64.0, 96.0)
+	var title_h := clampf(size.y * 0.118, 96.0, 124.0)
 	var nav_h := clampf(size.y * 0.125, 92.0, 128.0)
 	var stage_inset := clampf(size.x * 0.03, 10.0, 22.0)
 	if Platform.is_android():
@@ -177,11 +183,11 @@ func _layout_chrome() -> void:
 		nav_bar.offset_bottom = -maxi(4, int(safe.w) - 2)
 		_layout_header_controls(header_h)
 	title_label.offset_top = 0.0
-	title_label.offset_bottom = title_h * 0.34
-	subtitle_label.offset_top = title_h * 0.44
-	subtitle_label.offset_bottom = title_h * 0.62
-	hint_label.offset_top = title_h * 0.64
-	hint_label.offset_bottom = title_h
+	title_label.offset_bottom = title_h * 0.30
+	subtitle_label.offset_top = title_h * 0.30
+	subtitle_label.offset_bottom = title_h * 0.48
+	hint_label.offset_top = title_h * 0.50
+	hint_label.offset_bottom = title_h - 2.0
 	_icon_size = clampf(minf(size.x, size.y) * 0.07, 48.0, 72.0)
 	_update_nav_styles()
 	_fit_chrome_text()
@@ -354,7 +360,10 @@ func _build_nav() -> void:
 		var lab := Label.new()
 		lab.text = ModuleRegistry.display_short(mod)
 		lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lab.add_theme_font_size_override("font_size", 10)
+		lab.clip_text = true
+		lab.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+		lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lab.add_theme_font_size_override("font_size", 11)
 		lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		col.add_child(btn)
 		col.add_child(lab)
@@ -399,9 +408,15 @@ func _nav_index_at(global_pos: Vector2) -> int:
 func _fit_chrome_text() -> void:
 	var chip_width := _icon_size + 10.0
 	for lab in _nav_labels:
-		TextFit.fit(lab, 10, 0.75, chip_width)
+		var col := lab.get_parent() as Control
+		if col:
+			col.custom_minimum_size = Vector2(chip_width, _icon_size + 26.0)
+		TextFit.fit(lab, 11, 0.55, chip_width - 2.0, true)
 	TextFit.fit(title_label, 22)
-	TextFit.fit(hint_label, 12)
+	var hint_w := hint_label.size.x
+	if hint_w < 8.0:
+		hint_w = maxf(120.0, size.x - 48.0)
+	TextFit.fit(hint_label, 16, 0.82, hint_w, true)
 	TextFit.fit(subtitle_label, 11)
 
 

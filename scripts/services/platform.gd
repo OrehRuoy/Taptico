@@ -4,6 +4,10 @@ extends Node
 const STORE_PLAY := "play"
 const STORE_APP_STORE := "app_store"
 
+## Same developer pages StimPad opens from Settings. Not the portfolio site.
+const DEVELOPER_PLAY_STORE_URL := "https://play.google.com/store/apps/developer?id=OrehRuoy"
+const DEVELOPER_APP_STORE_URL := "https://apps.apple.com/developer/id6789963001"
+
 const _OS_ANDROID := "Android"
 const _OS_IOS := "iOS"
 
@@ -26,6 +30,12 @@ func store_name() -> String:
 	if is_android():
 		return STORE_PLAY
 	return ""
+
+
+func developer_store_url() -> String:
+	if OS.get_name() == "iOS":
+		return DEVELOPER_APP_STORE_URL
+	return DEVELOPER_PLAY_STORE_URL
 
 
 func supports_billing() -> bool:
