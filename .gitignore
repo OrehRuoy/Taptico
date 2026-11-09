@@ -1,6 +1,10 @@
 # Godot
 .godot/
 *.import
+# zip.wav and rub.wav must stay 16-bit PCM. Godot 4.6's default WAV import
+# is Quite OK Audio, and looping that compressed buffer is what breaks them.
+!assets/audio/zip.wav.import
+!assets/audio/rub.wav.import
 export_credentials.cfg
 .godot/export_credentials.cfg
 

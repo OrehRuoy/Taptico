@@ -127,16 +127,24 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
 		_stop_zip()
+	elif event is InputEventScreenTouch and not (event as InputEventScreenTouch).pressed:
+		_stop_zip()
 	elif event is InputEventMouseMotion:
 		var local_ev := make_input_local(event) as InputEventMouseMotion
 		_set_from_drag(local_ev.position.y)
+		accept_event()
+	elif event is InputEventScreenDrag:
+		# Position is absolute, so a mouse-emulation event for the same
+		# touch sets the same open amount instead of moving twice.
+		var drag := make_input_local(event) as InputEventScreenDrag
+		_set_from_drag(drag.position.y)
 		accept_event()
 
 
 func _process(_delta: float) -> void:
 	if not _dragging:
 		return
-	if Time.get_ticks_msec() - _last_move_ms > 55:
+	if Time.get_ticks_msec() - _last_move_ms > AudioFeel.held_quiet_msec():
 		AudioFeel.stop_held("zip")
 
 
