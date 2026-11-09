@@ -24,6 +24,8 @@ var _icon_size := 58.0
 
 var _current_index: int = 0
 var _module_instances: Dictionary = {}
+var _shown_scene_path: String = ""
+var _previous_scene_path: String = ""
 var _nav_buttons: Array[TextureButton] = []
 var _nav_labels: Array[Label] = []
 var _swipe_from := Vector2.ZERO
@@ -37,6 +39,12 @@ var _nudge_sheet: Control
 var _nudge_pending: bool = false
 var _nudge_wait: Timer
 var _trial_id: String = ""
+var _android_rule: TextureRect
+
+const _HEADER_TEX_W := 1024.0
+const _HEADER_TEX_H := 683.0
+const _HEADER_LINE_Y := 389.0
+const _HEADER_LINE_PX := 3.0
 
 
 func _ready() -> void:
@@ -120,6 +128,12 @@ func _style_chrome() -> void:
 	title_label.add_theme_constant_override("outline_size", 3)
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hint_label.add_theme_font_size_override("font_size", 16)
+	hint_label.add_theme_color_override("font_color", Color(0.97, 0.96, 0.93))
+	hint_label.add_theme_color_override("font_outline_color", Color(0.05, 0.04, 0.03, 0.85))
+	hint_label.add_theme_constant_override("outline_size", 4)
+	hint_label.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.03, 0.9))
+	hint_label.add_theme_constant_override("shadow_offset_y", 1)
 	_style_icon_button(settings_button)
 	_style_icon_button(unlock_button)
 	Chroma.apply(settings_button, settings_button.texture_normal, 0.0, 256)
@@ -146,33 +160,110 @@ func _layout_chrome() -> void:
 		return
 	var safe := _safe_margins()
 	var header_h := clampf(size.y * 0.075, 52.0, 78.0)
-	var title_h := clampf(size.y * 0.095, 64.0, 96.0)
+	var title_h := clampf(size.y * 0.118, 96.0, 124.0)
 	var nav_h := clampf(size.y * 0.125, 92.0, 128.0)
 	var stage_inset := clampf(size.x * 0.03, 10.0, 22.0)
-	var header_top := maxf(4.0, safe.y - 10.0)
-	$HeaderBar.offset_top = 0.0
-	$HeaderBar.offset_bottom = header_top + header_h
-	$Header.offset_top = header_top
-	$Header.offset_bottom = header_top + header_h
-	title_band.offset_top = header_top + header_h
-	title_band.offset_bottom = header_top + header_h + title_h
+	if Platform.is_android():
+		_layout_android_header(safe, header_h, title_h, nav_h, stage_inset)
+	else:
+		var header_top := maxf(4.0, safe.y - 10.0)
+		$HeaderBar.offset_top = 0.0
+		$HeaderBar.offset_bottom = header_top + header_h
+		$Header.offset_top = header_top
+		$Header.offset_bottom = header_top + header_h
+		title_band.offset_top = header_top + header_h
+		title_band.offset_bottom = header_top + header_h + title_h
+		stage.offset_left = stage_inset
+		stage.offset_right = -stage_inset
+		stage.offset_top = header_top + header_h + title_h + 8.0
+		stage.offset_bottom = -(nav_h + safe.w)
+		nav_bar.offset_left = stage_inset
+		nav_bar.offset_right = -stage_inset
+		nav_bar.offset_top = -(nav_h + safe.w - 4.0)
+		nav_bar.offset_bottom = -maxi(4, int(safe.w) - 2)
+		_layout_header_controls(header_h)
+	title_label.offset_top = 0.0
+	title_label.offset_bottom = title_h * 0.30
+	subtitle_label.offset_top = title_h * 0.30
+	subtitle_label.offset_bottom = title_h * 0.48
+	hint_label.offset_top = title_h * 0.50
+	hint_label.offset_bottom = title_h - 2.0
+	_icon_size = clampf(minf(size.x, size.y) * 0.07, 48.0, 72.0)
+	_update_nav_styles()
+	_fit_chrome_text()
+
+
+func _layout_android_header(safe: Vector4, content_h: float, title_h: float, nav_h: float, stage_inset: float) -> void:
+	_ensure_android_header_rule()
+	var inset := safe.y
+	var header_bottom := inset + content_h
+	var old_bar := maxf(4.0, safe.y - 10.0) + content_h
+	var gap := _covered_header_line_gap(old_bar, size.x)
+	var line_h := maxf(1.0, _HEADER_LINE_PX * size.x / _HEADER_TEX_W)
+	var bar: TextureRect = $HeaderBar
+	bar.offset_top = 0.0
+	bar.offset_bottom = maxf(line_h, header_bottom - line_h)
+	if _android_rule:
+		_android_rule.offset_left = 0.0
+		_android_rule.offset_right = 0.0
+		_android_rule.offset_top = header_bottom - line_h
+		_android_rule.offset_bottom = header_bottom
+		_android_rule.visible = bar.visible
+	$Header.offset_top = inset
+	$Header.offset_bottom = header_bottom
+	var below := header_bottom + gap
+	title_band.offset_top = below
+	title_band.offset_bottom = below + title_h
 	stage.offset_left = stage_inset
 	stage.offset_right = -stage_inset
-	stage.offset_top = header_top + header_h + title_h + 8.0
+	stage.offset_top = below + title_h + 8.0
 	stage.offset_bottom = -(nav_h + safe.w)
 	nav_bar.offset_left = stage_inset
 	nav_bar.offset_right = -stage_inset
 	nav_bar.offset_top = -(nav_h + safe.w - 4.0)
 	nav_bar.offset_bottom = -maxi(4, int(safe.w) - 2)
-	_layout_header_controls(header_h)
-	title_label.offset_top = 0.0
-	title_label.offset_bottom = title_h * 0.34
-	subtitle_label.offset_top = title_h * 0.44
-	subtitle_label.offset_bottom = title_h * 0.62
-	hint_label.offset_top = title_h * 0.64
-	hint_label.offset_bottom = title_h
-	_icon_size = clampf(minf(size.x, size.y) * 0.07, 48.0, 72.0)
-	_update_nav_styles()
+	_layout_header_controls(content_h)
+
+
+func _ensure_android_header_rule() -> void:
+	if _android_rule != null:
+		return
+	var bar: TextureRect = $HeaderBar
+	var src := bar.texture
+	if src == null:
+		return
+	var tw := float(src.get_width())
+	var th := float(src.get_height())
+	if tw < 8.0 or th < 8.0:
+		tw = _HEADER_TEX_W
+		th = _HEADER_TEX_H
+	var line_y := _HEADER_LINE_Y * th / _HEADER_TEX_H
+	var line_px := _HEADER_LINE_PX * th / _HEADER_TEX_H
+	var metal := AtlasTexture.new()
+	metal.atlas = src
+	metal.region = Rect2(0, 0, tw, line_y)
+	bar.texture = metal
+	bar.stretch_mode = TextureRect.STRETCH_SCALE
+	var rule_tex := AtlasTexture.new()
+	rule_tex.atlas = src
+	rule_tex.region = Rect2(0, line_y, tw, line_px)
+	_android_rule = TextureRect.new()
+	_android_rule.name = "HeaderRule"
+	_android_rule.texture = rule_tex
+	_android_rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_android_rule.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_android_rule.stretch_mode = TextureRect.STRETCH_SCALE
+	_android_rule.modulate = bar.modulate
+	_android_rule.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	add_child(_android_rule)
+	move_child(_android_rule, bar.get_index() + 1)
+
+
+func _covered_header_line_gap(bar_h: float, width: float) -> float:
+	var scale := maxf(width / _HEADER_TEX_W, bar_h / _HEADER_TEX_H)
+	var scaled_h := _HEADER_TEX_H * scale
+	var line_y := (bar_h - scaled_h) * 0.5 + (_HEADER_LINE_Y + _HEADER_LINE_PX) / _HEADER_TEX_H * scaled_h
+	return maxf(0.0, bar_h - line_y)
 
 
 func _layout_header_controls(header_h: float) -> void:
@@ -181,6 +272,10 @@ func _layout_header_controls(header_h: float) -> void:
 	var inner_h := header_h - 4.0
 	var btn_h := clampf(inner_h, 32.0, 44.0)
 	var top := 2.0
+	if Platform.is_android():
+		if btn_h > header_h - 8.0:
+			btn_h = header_h * 0.70
+		top = (header_h - btn_h) * 0.5
 	var logo_w := clampf(w * 0.28, 88.0, 140.0)
 	var logo: TextureRect = $Header/Logo
 	logo.offset_left = pad
@@ -263,9 +358,12 @@ func _build_nav() -> void:
 		if tex:
 			Chroma.apply(btn, tex, 0.0, 256)
 		var lab := Label.new()
-		lab.text = str(mod.get("short", ""))
+		lab.text = ModuleRegistry.display_short(mod)
 		lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lab.add_theme_font_size_override("font_size", 10)
+		lab.clip_text = true
+		lab.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+		lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lab.add_theme_font_size_override("font_size", 11)
 		lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		col.add_child(btn)
 		col.add_child(lab)
@@ -305,6 +403,21 @@ func _nav_index_at(global_pos: Vector2) -> int:
 		if col and col.get_global_rect().grow(4.0).has_point(global_pos):
 			return i
 	return -1
+
+
+func _fit_chrome_text() -> void:
+	var chip_width := _icon_size + 10.0
+	for lab in _nav_labels:
+		var col := lab.get_parent() as Control
+		if col:
+			col.custom_minimum_size = Vector2(chip_width, _icon_size + 26.0)
+		TextFit.fit(lab, 11, 0.55, chip_width - 2.0, true)
+	TextFit.fit(title_label, 22)
+	var hint_w := hint_label.size.x
+	if hint_w < 8.0:
+		hint_w = maxf(120.0, size.x - 48.0)
+	TextFit.fit(hint_label, 16, 0.82, hint_w, true)
+	TextFit.fit(subtitle_label, 11)
 
 
 func _style_nav_button(button: TextureButton, active: bool, locked: bool) -> void:
@@ -352,8 +465,8 @@ func _process(delta: float) -> void:
 	if ceili(left) != ceili(before):
 		_set_trial_subtitle(left)
 	if left <= 0.0:
-		var name := str(ModuleRegistry.get_module(_current_index).get("name", ""))
-		_expire_trial(name)
+		var toy_name := ModuleRegistry.display_name(ModuleRegistry.get_module(_current_index))
+		_expire_trial(toy_name)
 
 
 func _trial_clock_running() -> bool:
@@ -381,16 +494,23 @@ func _stop_trial_clock() -> void:
 func _set_trial_subtitle(seconds: float) -> void:
 	var total := ceili(maxf(seconds, 0.0))
 	total = mini(total, int(EntitlementStore.TRIAL_SECONDS))
-	subtitle_label.text = "FREE TRY  %d:%02d" % [int(total / 60.0), total % 60]
+	subtitle_label.text = tr("BADGE_FREE_TRY") % [int(total / 60.0), total % 60]
+	_fit_chrome_text()
 
 
 func _expire_trial(module_name: String) -> void:
 	_trial_id = ""
 	EntitlementStore.flush_trial_save()
-	for key in _module_instances:
+	for key in _module_instances.keys():
 		var inst: FidgetModule = _module_instances[key]
-		inst.deactivate()
-	subtitle_label.text = "LOCKED"
+		if is_instance_valid(inst) and not inst.is_queued_for_deletion():
+			inst.deactivate()
+			inst.queue_free()
+		_module_instances.erase(key)
+	_shown_scene_path = ""
+	_previous_scene_path = ""
+	subtitle_label.text = tr("BADGE_LOCKED")
+	_fit_chrome_text()
 	_update_nav_styles()
 	_present_paywall(module_name, true)
 
@@ -419,12 +539,9 @@ func _show_module(index: int, track: bool = true) -> void:
 	var module_id := str(mod.get("id", ""))
 	var unlocked := EntitlementStore.is_module_unlocked(module_id)
 	if not unlocked and EntitlementStore.trial_seconds_left(module_id) <= 0.0:
-		_present_paywall(str(mod.get("name", "")), true)
+		_present_paywall(ModuleRegistry.display_name(mod), true)
 		_update_nav_styles()
 		return
-	for key in _module_instances:
-		var inst: FidgetModule = _module_instances[key]
-		inst.deactivate()
 	var scene_path := str(mod.get("scene", ""))
 	if scene_path.is_empty():
 		push_error("Module missing scene: %s" % str(mod.get("id", "")))
@@ -438,16 +555,35 @@ func _show_module(index: int, track: bool = true) -> void:
 		module_host.add_child(instance)
 		instance.set_anchors_preset(Control.PRESET_FULL_RECT)
 		_module_instances[scene_path] = instance
-	var active: FidgetModule = _module_instances[scene_path]
+	var retained_previous := _previous_scene_path
+	if scene_path != _shown_scene_path:
+		retained_previous = _shown_scene_path
+	for key in _module_instances.keys():
+		var inst: FidgetModule = _module_instances[key]
+		var keep := str(key) == scene_path or (not retained_previous.is_empty() and str(key) == retained_previous)
+		if not is_instance_valid(inst) or inst.is_queued_for_deletion():
+			_module_instances.erase(key)
+			continue
+		inst.deactivate()
+		if not keep:
+			inst.queue_free()
+			_module_instances.erase(key)
+	var active: FidgetModule = _module_instances.get(scene_path)
+	if active == null or not is_instance_valid(active):
+		return
 	active.activate()
+	if scene_path != _shown_scene_path:
+		_previous_scene_path = _shown_scene_path
+		_shown_scene_path = scene_path
 	_current_index = index
-	title_label.text = str(mod.get("name", ""))
+	title_label.text = ModuleRegistry.display_name(mod)
 	if not unlocked and bool(mod.get("premium", false)):
 		_begin_trial(module_id)
 	else:
 		_stop_trial_clock()
-		subtitle_label.text = "FREE" if not bool(mod.get("premium", false)) else "PREMIUM"
-	hint_label.text = str(mod.get("hint", ""))
+		subtitle_label.text = tr("BADGE_FREE") if not bool(mod.get("premium", false)) else tr("BADGE_PREMIUM")
+	hint_label.text = ModuleRegistry.display_hint(mod)
+	_fit_chrome_text()
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_update_nav_styles()
 	if track:
@@ -499,7 +635,32 @@ func _on_nudge_unlock() -> void:
 	_present_paywall("Lifetime")
 
 
+func _on_android_back() -> void:
+	get_viewport().set_input_as_handled()
+	if enjoy_overlay != null and enjoy_overlay.visible:
+		enjoy_overlay._on_close()
+		return
+	if _nudge_sheet != null and _nudge_sheet.visible:
+		_nudge_sheet._close()
+		return
+	if paywall != null and paywall.visible:
+		if IAPManager.is_busy():
+			return
+		paywall._on_close()
+		return
+	if settings_overlay != null and settings_overlay.visible:
+		settings_overlay.hide_settings()
+		return
+	EntitlementStore.flush_trial_save()
+	_flush_play_time()
+	get_tree().quit()
+
+
 func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		if Platform.is_android():
+			_on_android_back()
+		return
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST:
 		EntitlementStore.flush_trial_save()
 		_flush_play_time()
@@ -618,6 +779,8 @@ func _refresh_lock_state() -> void:
 func _on_desk_stand(active: bool) -> void:
 	$Header.visible = not active
 	$HeaderBar.visible = not active
+	if _android_rule:
+		_android_rule.visible = not active
 	title_band.visible = not active
 	nav_bar.visible = not active
 	unlock_button.visible = not active

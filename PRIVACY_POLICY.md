@@ -14,13 +14,13 @@ Taptico is a haptic fidget and focus tool for iPhone and Android. It does not cr
 
 Lifetime Unlock is a one-time purchase through Apple on iPhone and Google Play on Android. We never see payment card details. Restore uses the store account (Apple ID or Google account).
 
-If you choose to send optional feedback from the in-app prompt, that note is delivered to us through Web3Forms. The same form is used on both platforms.
+If you choose to send optional feedback from the in-app prompt, that note is delivered to us through Web3Forms. On iPhone, that form can also include an optional crash report, and only if you check the box. The same form is used on both platforms.
 
 ## Data We Collect
 
 ### On your device only
 
-Motion sensors, haptics, and audio run locally. A small local file may remember Lifetime Unlock, sound and haptics settings, how much of each fidget’s one-time free try is left, and whether we already asked if you are enjoying the app. That file is not uploaded to us.
+Motion sensors, haptics, and audio run locally. A small local file may remember Lifetime Unlock, sound and haptics settings, how much of each fidget’s one-time free try is left, and whether we already asked if you are enjoying the app. That file is not uploaded to us. On iPhone, the newest crash or hang reports may also stay on the device. A report is uploaded only if you choose to attach it to feedback.
 
 iPhone haptics use Apple’s Taptic Engine / Core Haptics. Android haptics use the phone’s vibration motor.
 
@@ -30,6 +30,7 @@ After you have opened Taptico on three different days, we may ask if you are enj
 
 - On iPhone, **Yes** asks Apple to show the review sheet. On Android, **Yes** asks Google Play to show its in-app review sheet. Either store may decide not to show it.
 - **Not really** opens a form you can skip. If you send it, we receive your message, device model, OS version, screen size, and Taptico version. Email is included only if you type one and want a reply.
+- On iPhone, an optional, user-chosen crash report can be attached to that feedback. The box stays unchecked until you turn it on. The report stays on the device until then. After it is sent, that file is deleted from the phone.
 
 Feedback is sent with HTTPS to **Web3Forms**, which emails it to us. We do not use this for advertising. You can omit email. Closing the first question without answering means we may ask again on a later day.
 

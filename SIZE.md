@@ -22,3 +22,19 @@ Measured on this machine on 2026-09-25. Folder totals include `.import` sidecars
 ## IPA / PCK
 
 Not measured in this workspace. After the next `run_macos_export` run, record `build/Taptico.ipa` bytes here.
+
+# 1.0.3 text server data
+
+`locale/include_text_server_data=true` ships the ICU line-break dictionaries (`res://icudt_godot.dat`) so Japanese and Chinese hints wrap between characters.
+
+Measured on Windows with Godot 4.6.3 on 2026-10-26 by exporting the Android device-test preset twice with `--export-pack`. The only project change between the two packs was that flag.
+
+| Pack | Bytes |
+| --- | ---: |
+| With text server data | 35,266,696 |
+| Without text server data | 30,469,504 |
+| Delta | 4,797,192 |
+
+The export template copy of `icudt_godot.dat` is 4,797,072 bytes. Godot stores that file in the PCK, so the pack grows by 4,797,192 bytes (about 4.58 MB).
+
+An IPA and an AAB were not built on this machine. The same file is what those exports add, so each of them grows by the same amount. The translation CSV is in both packs and is not part of this delta.

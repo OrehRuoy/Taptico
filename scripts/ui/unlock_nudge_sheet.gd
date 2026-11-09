@@ -6,6 +6,10 @@ signal see_unlock
 signal dismissed
 
 var _card: PanelContainer
+var _title: Label
+var _body: Label
+var _see: Button
+var _later: Button
 
 
 func _ready() -> void:
@@ -58,7 +62,8 @@ func _build() -> void:
 	_card.add_child(col)
 
 	var title := Label.new()
-	title.text = "These three are free"
+	title.text = tr("NUDGE_TITLE")
+	_title = title
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_font_size_override("font_size", 20)
@@ -66,7 +71,8 @@ func _build() -> void:
 	col.add_child(title)
 
 	var body := Label.new()
-	body.text = "Lock, switches, and the slider stay free. Lifetime unlock adds the rest of the desk, including Desk Stand."
+	body.text = tr("NUDGE_BODY")
+	_body = body
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.add_theme_font_size_override("font_size", 15)
@@ -74,7 +80,8 @@ func _build() -> void:
 	col.add_child(body)
 
 	var see := Button.new()
-	see.text = "See unlock"
+	see.text = tr("NUDGE_SEE")
+	_see = see
 	see.custom_minimum_size = Vector2(0, 44)
 	see.pressed.connect(func() -> void:
 		hide()
@@ -83,7 +90,8 @@ func _build() -> void:
 	col.add_child(see)
 
 	var later := Button.new()
-	later.text = "Not now"
+	later.text = tr("COMMON_NOT_NOW")
+	_later = later
 	later.custom_minimum_size = Vector2(0, 40)
 	later.pressed.connect(_close)
 	col.add_child(later)
@@ -93,17 +101,26 @@ func _layout_card() -> void:
 	if _card == null:
 		return
 	var area := size
+	var origin := Vector2.ZERO
 	if area.x < 8.0 or area.y < 8.0:
 		area = get_viewport_rect().size
 	if area.x < 8.0 or area.y < 8.0:
 		return
+	if Platform.is_android():
+		var safe := Platform.safe_margins(self)
+		origin = Vector2(safe.x, safe.y)
+		area = Vector2(maxf(8.0, area.x - safe.x - safe.z), maxf(8.0, area.y - safe.y - safe.w))
 	var card_w := minf(320.0, area.x - 36.0)
 	_card.custom_minimum_size = Vector2(card_w, 0.0)
 	var card_h := minf(_card.get_combined_minimum_size().y, area.y - 48.0)
 	card_h = maxf(card_h, 180.0)
 	_card.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_card.position = (area - Vector2(card_w, card_h)) * 0.5
+	_card.position = origin + (area - Vector2(card_w, card_h)) * 0.5
 	_card.size = Vector2(card_w, card_h)
+	TextFit.fit(_title, 20)
+	TextFit.fit(_body, 15)
+	TextFit.fit_button(_see, 16)
+	TextFit.fit_button(_later, 16)
 
 
 func _close() -> void:

@@ -136,29 +136,22 @@ func _loop_wav(stream: AudioStream) -> AudioStream:
 	# Copy first. The preloaded sample is shared, and the audio thread reads
 	# its bytes while this runs.
 	wav = wav.duplicate() as AudioStreamWAV
+	if wav.format != AudioStreamWAV.FORMAT_16_BITS:
+		wav.loop_mode = AudioStreamWAV.LOOP_DISABLED
+		return wav
+	var bytes_per_frame := 4 if wav.stereo else 2
+	var frames := maxi(1, int(wav.data.size() / bytes_per_frame))
 	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	wav.loop_begin = 0
-	var frames := 1
-	if wav.format == AudioStreamWAV.FORMAT_16_BITS:
-		var bytes_per_frame := 4 if wav.stereo else 2
-		frames = maxi(1, int(wav.data.size() / bytes_per_frame))
-	else:
-		# Sample count from the header. Never data.size(): that is the
-		# compressed byte length, not PCM frames.
-		frames = maxi(1, int(round(wav.get_length() * float(wav.mix_rate))))
-	# The mixer reads the frame at loop_end, then wraps. loop_end == frame
-	# count reads one past the buffer and SIGSEGVs on Android.
+	# The mixer reads the frame at loop_end, then wraps. loop_end must be the
+	# last real frame, never the frame count, or Android reads past the buffer.
 	wav.loop_end = maxi(1, frames - 1)
 	return wav
 
 
-func held_quiet_msec(ios_msec: int = 55) -> int:
-	# OpenSL mixes 1024 frames at 44.1 kHz and keeps two buffers (~46 ms).
-	# Android also delivers touch moves in bursts. Stopping a loop within
-	# one buffer of the last move cuts it before that audio is heard.
-	if OS.get_name() == "Android":
-		return maxi(160, ios_msec)
-	return ios_msec
+func _held_stream_loops(stream: AudioStream) -> bool:
+	var wav := stream as AudioStreamWAV
+	return wav != null and wav.format == AudioStreamWAV.FORMAT_16_BITS and wav.loop_mode != AudioStreamWAV.LOOP_DISABLED
 
 
 func _load_wav(path: String) -> AudioStreamWAV:
@@ -473,8 +466,20 @@ func _play_held(name: String, pitch: float = 1.0, gain: float = 1.0) -> void:
 		p.stream = _streams[name]
 	p.pitch_scale = clampf(pitch, 0.7, 1.4)
 	p.volume_db = linear_to_db(clampf(AppSettings.sound_volume * gain, 0.0001, 1.0))
-	if not p.playing:
+	if _held_stream_loops(p.stream):
+		if not p.playing:
+			p.play()
+	else:
 		p.play()
+
+
+func held_quiet_msec(ios_msec: int = 55) -> int:
+	# OpenSL mixes 1024 frames at 44.1 kHz and keeps two buffers (~46 ms).
+	# Android also delivers touch moves in bursts. Stopping a loop within
+	# one buffer of the last move cuts it before that audio is heard.
+	if OS.get_name() == "Android":
+		return maxi(160, ios_msec)
+	return ios_msec
 
 
 func stop_held(name: String) -> void:

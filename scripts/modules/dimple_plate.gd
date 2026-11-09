@@ -54,7 +54,7 @@ func _ready() -> void:
 		add_child(d)
 		_domes.append(d)
 	_reset = Button.new()
-	_reset.text = "Reset"
+	_reset.text = tr("COMMON_RESET")
 	_reset.focus_mode = Control.FOCUS_NONE
 	_reset.pressed.connect(_reset_pops)
 	add_child(_reset)
@@ -91,6 +91,7 @@ func _layout() -> void:
 	_reset.add_theme_stylebox_override("normal", sb)
 	_reset.add_theme_color_override("font_color", DrawKit.GOLD)
 	_reset.add_theme_font_size_override("font_size", 14)
+	TextFit.fit_button(_reset, 14)
 
 
 func _hole_x(col: int, row: int) -> float:

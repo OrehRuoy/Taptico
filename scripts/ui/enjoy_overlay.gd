@@ -29,6 +29,8 @@ var _device_lab: Label
 var _status: Label
 var _send: Button
 var _no_btn: Button
+var _crash_check: CheckBox
+var _sent_crash_name: String = ""
 var _http: HTTPRequest
 
 
@@ -55,12 +57,15 @@ func present(preview: bool = false) -> void:
 		_feedback.text = ""
 	if _email:
 		_email.text = ""
-	_device_lab.text = "Included with your note: %s" % EnjoyPrompt.device_summary()
+	_device_lab.text = tr("ENJOY_DEVICE") % EnjoyPrompt.device_summary()
+	_refresh_crash_checkbox()
+	_close.accessibility_name = tr("ENJOY_CLOSE")
 	_show_page()
 	show()
 	move_to_front()
 	_opened_at_ms = Time.get_ticks_msec()
 	_layout_card()
+	_close.grab_focus()
 	await get_tree().process_frame
 	_layout_card()
 
@@ -100,6 +105,9 @@ func _build() -> void:
 	_close = TextureButton.new()
 	Chroma.apply(_close, CLOSE_TEX)
 	_empty_tex_button(_close)
+	_close.focus_mode = Control.FOCUS_ACCESSIBILITY
+	_close.accessibility_name = tr("ENJOY_CLOSE")
+	_close.tooltip_text = tr("ENJOY_CLOSE")
 	_close.pressed.connect(_on_close)
 	_shell.add_child(_close)
 
@@ -120,14 +128,14 @@ func _build() -> void:
 	_ask_box = VBoxContainer.new()
 	_ask_box.add_theme_constant_override("separation", 12)
 	_ask_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var ask_sub := _muted_label("A quick yes or no helps a lot.")
+	var ask_sub := _muted_label(tr("ENJOY_ASK_SUB"))
 	_ask_box.add_child(ask_sub)
 	var yes := Button.new()
-	_plate_button(yes, "Yes")
+	_plate_button(yes, tr("ENJOY_YES"))
 	yes.pressed.connect(_on_yes)
 	_ask_box.add_child(yes)
 	_no_btn = Button.new()
-	_no_btn.text = "Not really"
+	_no_btn.text = tr("ENJOY_NO")
 	_ghost_button(_no_btn)
 	_no_btn.custom_minimum_size = Vector2(216, 44)
 	_no_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -141,16 +149,16 @@ func _build() -> void:
 	_form_box = VBoxContainer.new()
 	_form_box.add_theme_constant_override("separation", 8)
 	_form_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_form_box.add_child(_muted_label("What can we improve? Bugs, ideas, anything."))
+	_form_box.add_child(_muted_label(tr("ENJOY_FORM_SUB")))
 	_feedback = TextEdit.new()
 	_feedback.custom_minimum_size = Vector2(0, 118)
 	_feedback.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
-	_feedback.placeholder_text = "Your feedback"
+	_feedback.placeholder_text = tr("ENJOY_FEEDBACK_PH")
 	_feedback.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_field(_feedback)
 	_form_box.add_child(_lock_width(_feedback, 118))
 	_email = LineEdit.new()
-	_email.placeholder_text = "Email if you want a reply (optional)"
+	_email.placeholder_text = tr("ENJOY_EMAIL_PH")
 	_email.custom_minimum_size = Vector2(0, 40)
 	_email.secret = false
 	_email.expand_to_text_length = false
@@ -160,11 +168,28 @@ func _build() -> void:
 	_device_lab = _muted_label("")
 	_device_lab.add_theme_font_size_override("font_size", 11)
 	_form_box.add_child(_device_lab)
+	_crash_check = CheckBox.new()
+	_crash_check.text = tr("FEEDBACK_INCLUDE_CRASH")
+	_crash_check.button_pressed = false
+	_crash_check.focus_mode = Control.FOCUS_NONE
+	_crash_check.visible = false
+	_crash_check.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_crash_check.add_theme_font_size_override("font_size", 13)
+	_crash_check.add_theme_color_override("font_color", Color(0.78, 0.80, 0.82))
+	_crash_check.add_theme_color_override("font_hover_color", Color(0.93, 0.86, 0.66))
+	_crash_check.add_theme_color_override("font_pressed_color", Color(0.96, 0.88, 0.62))
+	_crash_check.add_theme_color_override("font_hover_pressed_color", Color(0.96, 0.88, 0.62))
+	_crash_check.add_theme_color_override("icon_normal_color", Color(0.84, 0.70, 0.44))
+	_crash_check.add_theme_color_override("icon_hover_color", Color(0.93, 0.82, 0.55))
+	_crash_check.add_theme_color_override("icon_pressed_color", Color(0.96, 0.88, 0.62))
+	if "autowrap_mode" in _crash_check:
+		_crash_check.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_form_box.add_child(_crash_check)
 	_status = _muted_label("")
 	_status.add_theme_color_override("font_color", Color(0.93, 0.82, 0.58))
 	_form_box.add_child(_status)
 	_send = Button.new()
-	_plate_button(_send, "Send")
+	_plate_button(_send, tr("ENJOY_SEND"))
 	_send.custom_minimum_size = Vector2(0, 88)
 	_send.pressed.connect(_on_send)
 	_form_box.add_child(_send)
@@ -174,7 +199,7 @@ func _build() -> void:
 	_thanks_box = VBoxContainer.new()
 	_thanks_box.add_theme_constant_override("separation", 10)
 	_thanks_lab = Label.new()
-	_thanks_lab.text = "Thanks — we got it."
+	_thanks_lab.text = tr("ENJOY_THANKS_GOT_IT")
 	_thanks_lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_thanks_lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_thanks_lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -191,11 +216,11 @@ func _show_page() -> void:
 	_thanks_box.visible = _page == "thanks"
 	match _page:
 		"ask":
-			_title.text = "Enjoying Taptico?"
+			_title.text = tr("ENJOY_TITLE_ASK")
 		"form":
-			_title.text = "Tell us what to fix"
+			_title.text = tr("ENJOY_TITLE_FORM")
 		"thanks":
-			_title.text = "Thank you"
+			_title.text = tr("ENJOY_TITLE_THANKS")
 	_send.disabled = _busy
 	_layout_card()
 
@@ -205,7 +230,7 @@ func _on_yes() -> void:
 	if not _preview:
 		EnjoyPrompt.mark_completed()
 	if OS.has_feature("editor"):
-		_thanks_lab.text = "On iPhone this opens Apple’s review sheet.\nApple may hide it if you’ve already seen it recently."
+		_thanks_lab.text = "In a store build this opens the iOS or Google Play review sheet.\nThe store may hide it if you’ve already seen it recently."
 		_page = "thanks"
 		_show_page()
 		await get_tree().create_timer(2.2).timeout
@@ -218,6 +243,7 @@ func _on_yes() -> void:
 
 func _on_no() -> void:
 	AudioFeel.play_tick(0.85)
+	_refresh_crash_checkbox()
 	_page = "form"
 	_show_page()
 	_feedback.grab_focus()
@@ -228,15 +254,15 @@ func _on_send() -> void:
 		return
 	var note := _feedback.text.strip_edges()
 	if note.length() < 4:
-		_status.text = "A few more words would help."
+		_status.text = tr("ENJOY_TOO_SHORT")
 		return
 	var mail := _email.text.strip_edges()
 	if not mail.is_empty() and not _email_ok(mail):
-		_status.text = "That email doesn’t look right."
+		_status.text = tr("ENJOY_BAD_EMAIL")
 		return
 	AudioFeel.play_tick(1.0)
 	_busy = true
-	_status.text = "Sending…"
+	_status.text = tr("ENJOY_SENDING")
 	_show_page()
 	var wants_reply := not mail.is_empty()
 	var snap := EnjoyPrompt.device_snapshot()
@@ -244,13 +270,22 @@ func _on_send() -> void:
 		str(snap.model), str(snap.os), str(snap.os_version), str(snap.app_version),
 		str(snap.screen), str(snap.locale), "yes" if wants_reply else "no (no email given)",
 	]
+	var message := note + details
+	_sent_crash_name = ""
+	if _crash_check != null and _crash_check.visible and _crash_check.button_pressed:
+		var report := _latest_crash_report_text()
+		if not report.is_empty():
+			if report.length() > 20000:
+				report = report.substr(0, 20000)
+			message += "\n\n---\nCrash report:\n%s" % report
+			_sent_crash_name = _newest_crash_file_name()
 	var payload := {
 		"access_key": WEB3FORMS_KEY,
 		"subject": "Taptico feedback",
 		"from_name": "Taptico",
 		"name": "Taptico user",
 		"email": mail if wants_reply else FALLBACK_EMAIL,
-		"message": note + details,
+		"message": message,
 		"app_version": str(snap.app_version),
 		"device": str(snap.model),
 		"os": "%s %s" % [snap.os, snap.os_version],
@@ -271,7 +306,8 @@ func _on_send() -> void:
 	)
 	if err != OK:
 		_busy = false
-		_status.text = "Could not send. Check your connection."
+		_sent_crash_name = ""
+		_status.text = tr("ENJOY_SEND_FAIL_CONN")
 		_show_page()
 
 
@@ -284,12 +320,14 @@ func _on_http_done(result: int, response_code: int, _headers: PackedStringArray,
 		if parsed is Dictionary and parsed.has("success"):
 			ok = bool(parsed["success"])
 	if not ok:
-		_status.text = "Could not send. Try again in a moment."
+		_sent_crash_name = ""
+		_status.text = tr("ENJOY_SEND_FAIL_RETRY")
 		_show_page()
 		return
+	_delete_sent_crash_file()
 	if not _preview:
 		EnjoyPrompt.mark_completed()
-	_thanks_lab.text = "Thanks — we got it."
+	_thanks_lab.text = tr("ENJOY_THANKS_GOT_IT")
 	_page = "thanks"
 	_show_page()
 	await get_tree().create_timer(1.6).timeout
@@ -324,6 +362,53 @@ func _on_dim(event: InputEvent) -> void:
 		_on_close()
 
 
+func _refresh_crash_checkbox() -> void:
+	if _crash_check == null:
+		return
+	_crash_check.text = tr("FEEDBACK_INCLUDE_CRASH")
+	_crash_check.button_pressed = false
+	_crash_check.visible = OS.get_name() == "iOS" and Haptics.has_crash_reports()
+
+
+func _latest_crash_report_text() -> String:
+	if OS.get_name() != "iOS":
+		return ""
+	return Haptics.get_latest_crash_report()
+
+
+func _newest_crash_file_name() -> String:
+	var dir := DirAccess.open("user://diagnostics")
+	if dir == null:
+		return ""
+	var best := ""
+	var best_stamp := -1
+	for file_name in dir.get_files():
+		var name := str(file_name)
+		var stamp := _crash_stamp(name)
+		if stamp > best_stamp:
+			best_stamp = stamp
+			best = name
+	return best
+
+
+func _crash_stamp(file_name: String) -> int:
+	if not file_name.begins_with("mx_") or not file_name.ends_with(".json"):
+		return -1
+	var stem := file_name.trim_suffix(".json").substr(3)
+	if stem.is_empty() or not stem.is_valid_int():
+		return -1
+	return int(stem)
+
+
+func _delete_sent_crash_file() -> void:
+	if _sent_crash_name.is_empty():
+		return
+	var dir := DirAccess.open("user://diagnostics")
+	if dir != null:
+		dir.remove(_sent_crash_name)
+	_sent_crash_name = ""
+
+
 func _email_ok(value: String) -> bool:
 	if not value.contains("@") or not value.contains("."):
 		return false
@@ -344,33 +429,42 @@ func _lock_width(control: Control, height: float) -> Control:
 func _layout_card() -> void:
 	if _shell == null or size.x < 8.0:
 		return
+	var bounds := size
+	var origin := Vector2.ZERO
+	if Platform.is_android():
+		var safe := Platform.safe_margins(self)
+		origin = Vector2(safe.x, safe.y)
+		bounds = Vector2(maxf(8.0, size.x - safe.x - safe.z), maxf(8.0, size.y - safe.y - safe.w))
 	var pad := 16.0
-	var shell_w := minf(size.x - pad * 2.0, 392.0)
-	var shell_h := minf(size.y - pad * 2.0, 680.0)
+	var shell_w := minf(bounds.x - pad * 2.0, 392.0)
+	var shell_h := minf(bounds.y - pad * 2.0, 680.0)
 	var ix := shell_w * 0.168
 	var iy_t := shell_h * 0.115
 	var iy_b := shell_h * 0.108
 	var inner_w := shell_w - ix * 2.0
 	var inner_h := shell_h - iy_t - iy_b
 	var header_h := 58.0
-	var close_s := 32.0
+	var close_s := 48.0
+	var close_gap := 10.0
+	var top_chrome := 4.0 + close_s + close_gap + header_h + 6.0
 	_col.custom_minimum_size = Vector2(inner_w, 0.0)
 	var content_h := _col.get_combined_minimum_size().y + 12.0
-	var body_h := minf(content_h, inner_h - header_h - 8.0)
-	var needed_h := iy_t + header_h + 8.0 + body_h + iy_b
-	shell_h = minf(needed_h, size.y - pad * 2.0)
+	var body_h := minf(content_h, maxf(0.0, inner_h - top_chrome))
+	var needed_h := iy_t + top_chrome + body_h + iy_b
+	shell_h = minf(needed_h, bounds.y - pad * 2.0)
 	iy_t = shell_h * 0.115
 	iy_b = shell_h * 0.108
 	inner_w = shell_w - ix * 2.0
 	inner_h = shell_h - iy_t - iy_b
-	body_h = minf(content_h, inner_h - header_h - 8.0)
+	body_h = minf(content_h, maxf(0.0, inner_h - top_chrome))
 	_shell.size = Vector2(shell_w, shell_h)
-	_shell.position = (size - _shell.size) * 0.5
-	_title.position = Vector2(ix, iy_t + 2.0)
+	_shell.position = origin + (bounds - _shell.size) * 0.5
+	var title_y := iy_t + 4.0 + close_s + close_gap
+	_title.position = Vector2(ix, title_y)
 	_title.size = Vector2(inner_w, header_h)
-	_close.position = Vector2(ix + inner_w - close_s - 2.0, iy_t + 6.0)
+	_close.position = Vector2(ix + inner_w - close_s - 2.0, iy_t + 4.0)
 	_close.size = Vector2(close_s, close_s)
-	_scroll.position = Vector2(ix, iy_t + header_h + 6.0)
+	_scroll.position = Vector2(ix, title_y + header_h + 6.0)
 	_scroll.size = Vector2(inner_w, body_h)
 	_col.custom_minimum_size = Vector2(inner_w, 0.0)
 	_col.size.x = inner_w
@@ -382,6 +476,8 @@ func _layout_card() -> void:
 		bar.custom_minimum_size.x = 0
 	if _no_btn:
 		_no_btn.custom_minimum_size.x = inner_w * 0.72
+		TextFit.fit_button(_no_btn, 16)
+	TextFit.fit(_title, 22)
 
 
 func _empty_tex_button(button: TextureButton) -> void:

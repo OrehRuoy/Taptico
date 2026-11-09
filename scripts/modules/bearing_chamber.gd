@@ -17,6 +17,8 @@ var _inner_radius: float = 118.0
 var _gravity := Vector2(0, 720)
 var _last_clack_ms: int = 0
 var _placed: bool = false
+var _tilt_filtered: Vector3 = Vector3.ZERO
+var _tilt_filtered_ready: bool = false
 
 
 func _ready() -> void:
@@ -196,9 +198,20 @@ func _respawn_balls() -> void:
 func on_tilt(accel: Vector3, _gyro: Vector3) -> void:
 	if chamber == null:
 		return
+	var sample := accel
+	if Platform.is_android():
+		var gravity := Input.get_gravity()
+		if gravity.length() > 0.5:
+			sample = gravity
+		if not _tilt_filtered_ready:
+			_tilt_filtered = sample
+			_tilt_filtered_ready = true
+		else:
+			_tilt_filtered = _tilt_filtered.lerp(sample, 0.2)
+		sample = _tilt_filtered
 	var shake := AppSettings.shake_strength
-	if accel.length() >= 0.18:
-		_gravity = Vector2(accel.x, -accel.y) * (980.0 * shake)
+	if sample.length() >= 0.18:
+		_gravity = Vector2(sample.x, -sample.y) * (980.0 * shake)
 	else:
 		var local := get_local_mouse_position() - chamber.position
 		var mouse_force := local.normalized() * minf(local.length() / 90.0, 1.0) * (900.0 * maxf(shake, 0.35))

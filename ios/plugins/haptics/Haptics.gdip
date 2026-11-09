@@ -7,7 +7,7 @@ deinitialization="haptics_deinit"
 [dependencies]
 linked=[]
 embedded=[]
-system=["Foundation.framework", "UIKit.framework", "CoreHaptics.framework", "AVFoundation.framework"]
+system=["Foundation.framework", "UIKit.framework", "CoreHaptics.framework", "AVFoundation.framework", "MetricKit.framework"]
 capabilities=[]
 files=[]
 linker_flags=["-ObjC"]

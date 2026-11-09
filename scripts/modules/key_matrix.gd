@@ -10,7 +10,7 @@ const LAYOUT := [
 	[{"label": "1"}, {"label": "2"}, {"label": "3"}],
 	[{"label": "", "empty": true}, {"label": "0"}, {"label": "", "empty": true}],
 ]
-const FEEL_NAMES := ["Smooth", "Bump", "Click"]
+const FEEL_NAMES := ["KEYS_SMOOTH", "KEYS_BUMP", "KEYS_CLICK"]
 const FEEL_STYLES := [SwitchStyle.LINEAR, SwitchStyle.TACTILE, SwitchStyle.CLICKY]
 
 var _pressed_key: Dictionary = {}
@@ -51,7 +51,7 @@ func _ready() -> void:
 	add_child(track)
 	for i in FEEL_NAMES.size():
 		var btn := Button.new()
-		btn.text = FEEL_NAMES[i]
+		btn.text = tr(FEEL_NAMES[i])
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.custom_minimum_size = Vector2(0, 36)
 		btn.focus_mode = Control.FOCUS_NONE
@@ -114,6 +114,7 @@ func _style_feel_buttons() -> void:
 			box.border_color = Color(0, 0, 0, 0)
 			btn.add_theme_color_override("font_color", Color(0.86, 0.80, 0.68))
 		btn.add_theme_font_size_override("font_size", 14)
+		TextFit.fit_button(btn, 14)
 		btn.add_theme_stylebox_override("normal", box)
 		btn.add_theme_stylebox_override("hover", box)
 		btn.add_theme_stylebox_override("pressed", box)
@@ -134,6 +135,8 @@ func _layout() -> void:
 	row.size = Vector2(bar_w, row_h)
 	row.z_index = 8
 	row.move_to_front()
+	for feel_btn in _feel_buttons:
+		TextFit.fit_button(feel_btn, 14)
 	for i in _caps.size():
 		_place_cap(i)
 

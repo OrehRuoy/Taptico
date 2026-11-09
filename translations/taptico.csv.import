@@ -1,0 +1,9 @@
+[remap]
+
+importer="keep"
+uid="uid://b7tapticocsv01"
+
+[deps]
+
+source_file="res://translations/taptico.csv"
+dest_files=["res://translations/taptico.csv"]

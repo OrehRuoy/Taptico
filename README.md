@@ -90,6 +90,13 @@ Local Mac: `bundle exec fastlane ios beta` (uses the same ExportOptions + clean 
 
 When Lifetime Unlock is active, charging + landscape + still device triggers ambient desk-stand UI (keep screen on, minimal chrome). There is no public MagSafe-only API; charging detection uses `UIDevice.batteryState`.
 
+## Android
+
+Local Godot export only. GitHub Actions does not build Android.
+
+- Package `com.taptico.fidgettoys`, presets, signing, and version code: [docs/ANDROID_EXPORT.md](docs/ANDROID_EXPORT.md)
+- Phone checklist: [docs/ANDROID_QA.md](docs/ANDROID_QA.md)
+
 ## License
 
 Proprietary — Orehruoy
