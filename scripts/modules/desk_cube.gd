@@ -131,7 +131,7 @@ func _process(delta: float) -> void:
 		_joy_target = Vector2.ZERO
 	_joy = _joy.lerp(_joy_target, 1.0 - exp(-18.0 * delta))
 	_worry_heat = maxf(0.0, _worry_heat - delta * 0.55)
-	if _drag == "worry" and Time.get_ticks_msec() - _last_worry_ms > 70:
+	if _drag == "worry" and Time.get_ticks_msec() - _last_worry_ms > AudioFeel.held_quiet_msec(70):
 		AudioFeel.stop_held("rub")
 	_nub.visible = _face == Face.JOYSTICK
 	if _stem:

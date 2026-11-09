@@ -68,9 +68,12 @@ func _build_streams() -> void:
 	_streams["pop"] = _sample_or("pop.wav", _tone_pop)
 	_streams["pen_click"] = _sample_or("pen_click.wav", _make_pen_click)
 	_streams["squelch"] = _make_putty()
-	_streams["zip"] = _loop_wav(_sample_or("zip.wav", _make_zip_tooth))
+	# Held loops. Import these as 16-bit PCM (see their .import files).
+	# Godot 4.6 otherwise compresses WAV to QOA, and a loop parked on the
+	# last compressed frame is the read Android faults.
+	_streams["zip"] = _loop_sample("zip.wav", _make_zip_tooth)
 	_streams["fold"] = _sample_or("fold.wav", _make_paper_fold)
-	_streams["rub"] = _loop_wav(_sample_or("rub.wav", _make_rub))
+	_streams["rub"] = _loop_sample("rub.wav", _make_rub)
 
 
 func _sample_or(file_name: String, fallback: Callable) -> AudioStream:
@@ -112,18 +115,50 @@ func _packed_wav(file_name: String) -> AudioStream:
 			return null
 
 
+func _loop_sample(file_name: String, fallback: Callable) -> AudioStream:
+	var stream := _sample_or(file_name, fallback)
+	var wav := stream as AudioStreamWAV
+	if wav != null and wav.format != AudioStreamWAV.FORMAT_16_BITS:
+		# Editor builds can still open the source WAV. Exported builds pack the
+		# imported sample, so this only helps when the RIFF file is readable.
+		var parsed := _load_wav("%s/%s" % [AUDIO_DIR, file_name])
+		if parsed:
+			wav = parsed
+		else:
+			push_warning("Taptico: %s imported as compressed format %s. Looping that is unreliable on Android; pin compress/mode=0." % [file_name, wav.format])
+	return _loop_wav(wav if wav != null else stream)
+
+
 func _loop_wav(stream: AudioStream) -> AudioStream:
 	var wav := stream as AudioStreamWAV
 	if wav == null:
 		return stream
+	# Copy first. The preloaded sample is shared, and the audio thread reads
+	# its bytes while this runs.
+	wav = wav.duplicate() as AudioStreamWAV
 	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	wav.loop_begin = 0
-	var frames := int(round(wav.get_length() * float(wav.mix_rate)))
+	var frames := 1
 	if wav.format == AudioStreamWAV.FORMAT_16_BITS:
 		var bytes_per_frame := 4 if wav.stereo else 2
 		frames = maxi(1, int(wav.data.size() / bytes_per_frame))
+	else:
+		# Sample count from the header. Never data.size(): that is the
+		# compressed byte length, not PCM frames.
+		frames = maxi(1, int(round(wav.get_length() * float(wav.mix_rate))))
+	# The mixer reads the frame at loop_end, then wraps. loop_end == frame
+	# count reads one past the buffer and SIGSEGVs on Android.
 	wav.loop_end = maxi(1, frames - 1)
 	return wav
+
+
+func held_quiet_msec(ios_msec: int = 55) -> int:
+	# OpenSL mixes 1024 frames at 44.1 kHz and keeps two buffers (~46 ms).
+	# Android also delivers touch moves in bursts. Stopping a loop within
+	# one buffer of the last move cuts it before that audio is heard.
+	if OS.get_name() == "Android":
+		return maxi(160, ios_msec)
+	return ios_msec
 
 
 func _load_wav(path: String) -> AudioStreamWAV:
