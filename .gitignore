@@ -6,6 +6,8 @@
 !assets/audio/zip_close.wav.import
 !assets/audio/zip_open.wav.import
 !assets/audio/rub.wav.import
+!assets/modules/bulb_off.png.import
+!assets/modules/bulb_on.png.import
 export_credentials.cfg
 .godot/export_credentials.cfg
 
