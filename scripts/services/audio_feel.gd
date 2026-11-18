@@ -13,7 +13,8 @@ const WAV_KEY_CLICK := preload("res://assets/audio/key_click.wav")
 const WAV_CLICK := preload("res://assets/audio/click.wav")
 const WAV_POP := preload("res://assets/audio/pop.wav")
 const WAV_PEN := preload("res://assets/audio/pen_click.wav")
-const WAV_ZIP := preload("res://assets/audio/zip.wav")
+const WAV_ZIP_CLOSE := preload("res://assets/audio/zip_close.wav")
+const WAV_ZIP_OPEN := preload("res://assets/audio/zip_open.wav")
 const WAV_FOLD := preload("res://assets/audio/fold.wav")
 const WAV_RUB := preload("res://assets/audio/rub.wav")
 
@@ -71,7 +72,8 @@ func _build_streams() -> void:
 	# Held loops. Import these as 16-bit PCM (see their .import files).
 	# Godot 4.6 otherwise compresses WAV to QOA, and a loop parked on the
 	# last compressed frame is the read Android faults.
-	_streams["zip"] = _loop_sample("zip.wav", _make_zip_tooth)
+	_streams["zip_close"] = _loop_sample("zip_close.wav", _make_zip_tooth)
+	_streams["zip_open"] = _loop_sample("zip_open.wav", _make_zip_tooth)
 	_streams["fold"] = _sample_or("fold.wav", _make_paper_fold)
 	_streams["rub"] = _loop_sample("rub.wav", _make_rub)
 
@@ -105,8 +107,10 @@ func _packed_wav(file_name: String) -> AudioStream:
 			return WAV_POP
 		"pen_click.wav":
 			return WAV_PEN
-		"zip.wav":
-			return WAV_ZIP
+		"zip_close.wav":
+			return WAV_ZIP_CLOSE
+		"zip_open.wav":
+			return WAV_ZIP_OPEN
 		"fold.wav":
 			return WAV_FOLD
 		"rub.wav":
@@ -533,8 +537,15 @@ func play_squelch(gain: float = 0.3) -> void:
 	_play("squelch", randf_range(0.88, 1.08), gain)
 
 
-func play_zip(pitch_scale: float = 1.0, gain: float = 0.48) -> void:
-	_play_held("zip", pitch_scale, gain)
+func play_zip(closing: bool, pitch_scale: float = 1.0, gain: float = 0.48) -> void:
+	var other := "zip_open" if closing else "zip_close"
+	stop_held(other)
+	_play_held("zip_close" if closing else "zip_open", pitch_scale, gain)
+
+
+func stop_zip() -> void:
+	stop_held("zip_close")
+	stop_held("zip_open")
 
 
 func play_fold(gain: float = 0.72) -> void:

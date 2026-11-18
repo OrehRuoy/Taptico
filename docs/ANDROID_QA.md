@@ -14,7 +14,7 @@ Install a debug APK with `adb install -r build/Taptico.apk` for haptics, tilt, a
 - [ ] Gesture nav: fast edge drags on Slider/Zipper/Lock/Cube don't trigger system Back (if they do, report it; do not add gesture-exclusion code yet).
 - [ ] No clipping under the punch-hole or the 3-button nav in carousel, paywall, settings, enjoy, nudge.
 - [ ] Shaders look the same as iOS under Compatibility (chroma-keyed art, metal, pen, theremin, unzip).
-- [ ] Desk Stand (unlocked): charging + landscape + still → landscape desk mode with screen kept on; pick it up → back to portrait.
+- [ ] Desk Stand (unlocked): charging + standing on its side + still for 2 s → landscape desk mode with screen kept on; pick it up, lay it flat, or unplug → back to portrait. Tilting to roll the bearings while charging must never flip the screen.
 - [ ] Billing (install from the Play INTERNAL track as a license tester; sideloaded APKs can't see products):
   - Play price shows (not a hardcoded $4.99).
   - "Test card, always approves" unlocks everything; 5+ minutes later the order isn't refunded (acknowledged).

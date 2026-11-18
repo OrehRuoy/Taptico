@@ -137,7 +137,8 @@ func _load_raw(path: String) -> Image:
 
 func _read_image(src: Texture2D) -> Image:
 	var img: Image = null
-	if not src.resource_path.is_empty():
+	# Exports ship only the imported texture, not the source PNG.
+	if not src.resource_path.is_empty() and FileAccess.file_exists(src.resource_path):
 		img = Image.new()
 		if img.load(src.resource_path) != OK:
 			img = null

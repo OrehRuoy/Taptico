@@ -2,14 +2,47 @@ extends FidgetModule
 ## Top-down circular well. Bearings stay inside the rim.
 
 const BALL_COUNT := 5
-const BALL_R := 16.0
+# Matches the visible ball so neighbours and the rim are touched, not near-missed.
+const BALL_R := 11.5
 const WELL_TEX := preload("res://assets/modules/chamber_well.png")
 const BALL_TEX := preload("res://assets/modules/bearing_photo.png")
+# bearing_photo.png (1024 px): the ball is 665 px across, centred at (511, 506).
+const PHOTO_BALL_D := 665.0
+const PHOTO_BALL_C := Vector2(511.0, 506.0)
+
+# Key light from the upper left, as in the photo and the well. Screen y points down.
+const LIGHT_DIR := Vector3(-0.45, -0.62, 0.64)
+# Contact shadow, in ball radii.
+const SHADOW_OFFSET := Vector2(0.30, 0.48)
+const SHADOW_RADIUS := 1.42
+const SHADOW_ALPHA := 0.9
+
+const SHADE_SHADER := """shader_type canvas_item;
+render_mode blend_premul_alpha;
+uniform vec3 light_dir;
+void fragment() {
+	vec2 p = UV * 2.0 - 1.0;
+	float r = length(p);
+	float aa = max(fwidth(r), 0.002) * 1.5;
+	float mask = 1.0 - smoothstep(1.0 - aa, 1.0, r);
+	vec3 n = vec3(p, sqrt(max(0.0, 1.0 - r * r)));
+	vec3 l = normalize(light_dir);
+	float lambert = max(dot(n, l), 0.0);
+	float shade = pow(1.0 - lambert, 2.2) * 0.52 + smoothstep(0.82, 1.0, r) * 0.12;
+	float nh = max(dot(n, normalize(l + vec3(0.0, 0.0, 1.0))), 0.0);
+	float spec = pow(nh, 40.0) * 0.26 + pow(nh, 8.0) * 0.06;
+	float away = max(dot(p / max(r, 0.0001), -normalize(l.xy)), 0.0);
+	float rim = smoothstep(0.74, 0.90, r) * (1.0 - smoothstep(0.90, 0.97, r)) * pow(away, 2.0) * 0.16;
+	COLOR = vec4(vec3(spec + rim) * mask, clamp(shade, 0.0, 0.8) * mask);
+}
+"""
 
 @onready var chamber: Node2D = $Chamber
 @onready var balls_root: Node2D = $Chamber/Balls
 
 var _well: Sprite2D
+var _shadow_root: Node2D
+var _shadows: Array[Sprite2D] = []
 var _ball_spr: Array[Sprite2D] = []
 var _ball_pos: Array[Vector2] = []
 var _ball_vel: Array[Vector2] = []
@@ -34,6 +67,11 @@ func _ready() -> void:
 	chamber.move_child(_well, 0)
 	_disable_box_walls()
 	_clear_scene_balls()
+	_shadow_root = Node2D.new()
+	_shadow_root.name = "Shadows"
+	_shadow_root.z_index = 1
+	chamber.add_child(_shadow_root)
+	chamber.move_child(_shadow_root, balls_root.get_index())
 	_make_balls()
 	balls_root.z_index = 1
 	resized.connect(_layout)
@@ -63,22 +101,58 @@ func _clear_scene_balls() -> void:
 
 func _make_balls() -> void:
 	_ball_spr.clear()
+	_shadows.clear()
 	_ball_pos.clear()
 	_ball_vel.clear()
-	var sc := 1.0
-	if BALL_TEX:
-		sc = (BALL_R * 2.0) / (float(BALL_TEX.get_width()) * 0.90)
+	var sc := (BALL_R * 2.0) / PHOTO_BALL_D
+	var shadow_tex := _make_shadow_texture()
+	var shade_tex := ImageTexture.create_from_image(Image.create(8, 8, false, Image.FORMAT_RGBA8))
+	var shade_mat := ShaderMaterial.new()
+	shade_mat.shader = Shader.new()
+	shade_mat.shader.code = SHADE_SHADER
+	shade_mat.set_shader_parameter("light_dir", LIGHT_DIR)
 	for i in BALL_COUNT:
+		var shadow := Sprite2D.new()
+		shadow.texture = shadow_tex
+		shadow.centered = true
+		shadow.scale = Vector2.ONE * (BALL_R * SHADOW_RADIUS * 2.0 / float(shadow_tex.get_width()))
+		_shadow_root.add_child(shadow)
+		_shadows.append(shadow)
 		var sprite := Sprite2D.new()
 		sprite.name = "Steel%d" % i
 		Chroma.apply(sprite, BALL_TEX)
-		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 		sprite.centered = true
+		sprite.offset = Vector2(512.0, 512.0) - PHOTO_BALL_C
 		sprite.scale = Vector2(sc, sc)
+		var shade := Sprite2D.new()
+		shade.texture = shade_tex
+		shade.material = shade_mat
+		shade.centered = true
+		# Slightly over the photo's soft edge so no unshaded rim peeks out.
+		shade.scale = Vector2.ONE * (PHOTO_BALL_D * 1.02 / float(shade_tex.get_width()))
+		sprite.add_child(shade)
 		balls_root.add_child(sprite)
 		_ball_spr.append(sprite)
 		_ball_pos.append(Vector2.ZERO)
 		_ball_vel.append(Vector2.ZERO)
+
+
+func _make_shadow_texture() -> GradientTexture2D:
+	var g := Gradient.new()
+	g.offsets = PackedFloat32Array([0.0, 0.62, 0.82, 1.0])
+	g.colors = PackedColorArray([
+		Color(0, 0, 0, SHADOW_ALPHA), Color(0, 0, 0, SHADOW_ALPHA * 0.85),
+		Color(0, 0, 0, SHADOW_ALPHA * 0.35), Color(0, 0, 0, 0),
+	])
+	var t := GradientTexture2D.new()
+	t.gradient = g
+	t.width = 64
+	t.height = 64
+	t.fill = GradientTexture2D.FILL_RADIAL
+	t.fill_from = Vector2(0.5, 0.5)
+	t.fill_to = Vector2(1.0, 0.5)
+	return t
 
 
 func _layout() -> void:
@@ -174,14 +248,19 @@ func _physics_process(delta: float) -> void:
 				_ball_vel[i] -= n * vn * 1.55
 				_ball_vel[i] *= 0.92
 				_clack(absf(vn))
-		_ball_spr[i].position = _ball_pos[i]
-		_ball_spr[i].rotation += _ball_vel[i].length() * dt * 0.04
+		_place(i)
 
 
 func _sync_sprites() -> void:
 	for i in _ball_spr.size():
 		if i < _ball_pos.size():
-			_ball_spr[i].position = _ball_pos[i]
+			_place(i)
+
+
+## The photo never rotates, so its highlight stays with the light like a real ball.
+func _place(index: int) -> void:
+	_ball_spr[index].position = _ball_pos[index]
+	_shadows[index].position = _ball_pos[index] + SHADOW_OFFSET * BALL_R
 
 
 func _respawn_balls() -> void:

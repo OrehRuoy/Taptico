@@ -2,28 +2,28 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://hpuu6ug7avff"
-path="res://.godot/imported/zipper_placket.png-65d255a434e62fce3eb5a0dc87ca22ea.ctex"
+uid="uid://bowna0mt7dj5p"
+path="res://.godot/imported/bulb_on.png-5814a1ddfa2bd9a220e4508407f78393.ctex"
 metadata={
-"vram_texture": true
+"vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/modules/zipper_placket.png"
-dest_files=["res://.godot/imported/zipper_placket.png-65d255a434e62fce3eb5a0dc87ca22ea.ctex"]
+source_file="res://assets/modules/bulb_on.png"
+dest_files=["res://.godot/imported/bulb_on.png-5814a1ddfa2bd9a220e4508407f78393.ctex"]
 
 [params]
 
-compress/mode=2
-compress/high_quality=true
+compress/mode=0
+compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""
