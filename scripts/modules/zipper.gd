@@ -37,10 +37,20 @@ const STOP_BOTTOM_H := 7.0
 const END_MARGIN := 6.0
 const SEG := 4.0
 
+# Teeth the slider passes per selection haptic, in both directions.
+const HAPTIC_TOOTH_STEP := 2
+
 const HIT_MIN_DP := 48.0
 const HIT_MIN_UNITS := 64.0
 const MOVE_EPS := 0.5
 const SPEED_FULL := 900.0
+
+# Screen reader: adjust actions move by this fraction; a toggle glides end to end.
+const A11Y_STEP := 0.1
+const GLIDE_PER_SEC := 1.6
+# With TalkBack, a press that travels less than this (in units) is a tap.
+const TAP_SLOP := 10.0
+const TALKBACK_POLL_MSEC := 1500
 
 const BRASS_HI := Color(0.99, 0.88, 0.56)
 const BRASS := Color(0.86, 0.68, 0.32)
@@ -57,6 +67,13 @@ var _anchor_y: float = 0.0
 var _anchor_ms: int = 0
 var _last_move_ms: int = 0
 var _speed: float = 0.0
+var _gliding: bool = false
+var _glide_target: float = 0.0
+var _talkback: bool = false
+var _talkback_checked_ms: int = -TALKBACK_POLL_MSEC
+var _press_y: float = 0.0
+var _tap_candidate: bool = false
+var _a11y_pct: int = 0
 var _tape_tex: Texture2D
 var _pull_tex: Texture2D
 
@@ -78,6 +95,7 @@ func _ready() -> void:
 	display_name = "Zipper"
 	is_premium = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	focus_mode = Control.FOCUS_ACCESSIBILITY
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	_tape_tex = _load_png(TAPE_PATH)
 	_pull_tex = Chroma.tex(PULL_TEX)
@@ -86,14 +104,129 @@ func _ready() -> void:
 	_layout()
 
 
+func on_activate() -> void:
+	_refresh_talkback(true)
+
+
 func on_deactivate() -> void:
+	_gliding = false
 	_end_drag()
 
 
 func _end_drag() -> void:
 	_dragging = false
+	_tap_candidate = false
 	_speed = 0.0
 	AudioFeel.stop_zip()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_ACCESSIBILITY_UPDATE:
+		_update_accessibility()
+	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		_refresh_talkback(true)
+
+
+func _update_accessibility() -> void:
+	var ae := get_accessibility_element()
+	if not ae.is_valid():
+		return
+	DisplayServer.accessibility_update_set_role(ae, DisplayServer.ROLE_SLIDER)
+	DisplayServer.accessibility_update_set_name(ae, "Zipper")
+	DisplayServer.accessibility_update_set_value(ae, value_text())
+	DisplayServer.accessibility_update_set_num_range(ae, 0.0, 100.0)
+	DisplayServer.accessibility_update_set_num_value(ae, float(_open_pct()))
+	DisplayServer.accessibility_update_set_num_step(ae, A11Y_STEP * 100.0)
+	DisplayServer.accessibility_update_add_action(ae, DisplayServer.ACTION_INCREMENT, _a11y_increment)
+	DisplayServer.accessibility_update_add_action(ae, DisplayServer.ACTION_DECREMENT, _a11y_decrement)
+	DisplayServer.accessibility_update_add_action(ae, DisplayServer.ACTION_SET_VALUE, _a11y_set_value)
+	DisplayServer.accessibility_update_add_action(ae, DisplayServer.ACTION_CLICK, _a11y_toggle)
+
+
+func _open_pct() -> int:
+	return int(round(_open * 100.0))
+
+
+## Spoken value: how far the zipper is open.
+func value_text() -> String:
+	var pct := _open_pct()
+	if pct <= 0:
+		return "Closed"
+	if pct >= 100:
+		return "Fully open"
+	return "%d%% open" % pct
+
+
+func _a11y_increment(_data: Variant = null) -> void:
+	_glide_by(A11Y_STEP)
+
+
+func _a11y_decrement(_data: Variant = null) -> void:
+	_glide_by(-A11Y_STEP)
+
+
+func _a11y_set_value(data: Variant = null) -> void:
+	if typeof(data) == TYPE_FLOAT or typeof(data) == TYPE_INT:
+		glide_to(float(data) / 100.0)
+
+
+func _a11y_toggle(_data: Variant = null) -> void:
+	toggle()
+
+
+## Opens fully if mostly closed, otherwise closes fully.
+func toggle() -> void:
+	glide_to(1.0 if _open < 0.5 else 0.0)
+
+
+func _glide_by(step: float) -> void:
+	var from := _glide_target if _gliding else _open
+	glide_to(from + step)
+
+
+## Moves the slider to an open fraction with the normal sounds and haptic ticks.
+func glide_to(target: float) -> void:
+	if not _active or _dragging:
+		return
+	target = clampf(target, 0.0, 1.0)
+	if AppSettings.reduce_motion():
+		_gliding = false
+		if not is_equal_approx(target, _open):
+			_set_open(target)
+			Haptics.selection()
+		return
+	if not _gliding:
+		var mesh_y := _mesh_y()
+		_last_tooth = _tooth_at(mesh_y)
+		_anchor_y = mesh_y
+		_anchor_ms = Time.get_ticks_msec()
+		_last_move_ms = _anchor_ms
+	_glide_target = target
+	_gliding = not is_equal_approx(target, _open)
+
+
+## TalkBack sends its taps and drags through the centre of the game view, so the
+## slider-only drag can't be reached; with touch exploration on, any press on the
+## zipper grabs the slider relatively and a tap toggles it.
+func _refresh_talkback(force: bool = false) -> void:
+	var now := Time.get_ticks_msec()
+	if not force and now - _talkback_checked_ms < TALKBACK_POLL_MSEC:
+		return
+	_talkback_checked_ms = now
+	_talkback = _android_touch_exploration()
+
+
+func _android_touch_exploration() -> bool:
+	if OS.get_name() != "Android" or not Engine.has_singleton("AndroidRuntime"):
+		return false
+	var runtime: Object = Engine.get_singleton("AndroidRuntime")
+	var context: Variant = runtime.call("getApplicationContext")
+	if context == null:
+		return false
+	var manager: Variant = (context as Object).call("getSystemService", "accessibility")
+	if manager == null:
+		return false
+	return bool((manager as Object).call("isTouchExplorationEnabled"))
 
 
 func _load_png(path: String) -> Texture2D:
@@ -180,7 +313,7 @@ func _last_tooth_y() -> float:
 
 
 func _tooth_at(mesh_y: float) -> int:
-	return int(floor((mesh_y - _mesh_min) / (PITCH * _k)))
+	return int(floor((mesh_y - _mesh_min) / (PITCH * _k * HAPTIC_TOOTH_STEP)))
 
 
 func _draw() -> void:
@@ -357,25 +490,37 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		var button := event as InputEventMouseButton
 		if button.pressed:
-			if _slider_hit_rect().has_point(button.position):
+			if _talkback or _slider_hit_rect().has_point(button.position):
+				_gliding = false
 				var mesh_y := _mesh_y()
 				_dragging = true
 				_grab_dy = button.position.y - mesh_y
 				_last_tooth = _tooth_at(mesh_y)
 				_anchor_y = mesh_y
 				_anchor_ms = Time.get_ticks_msec()
+				_press_y = button.position.y
+				_tap_candidate = _talkback
 				accept_event()
 		else:
-			_end_drag()
+			_release()
+
+
+func _release() -> void:
+	if not _dragging:
+		return
+	var tapped := _tap_candidate
+	_end_drag()
+	if tapped:
+		toggle()
 
 
 func _input(event: InputEvent) -> void:
 	if not _active or not _dragging:
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
-		_end_drag()
+		_release()
 	elif event is InputEventScreenTouch and (event as InputEventScreenTouch).index == 0 and not event.pressed:
-		_end_drag()
+		_release()
 	elif event is InputEventMouseMotion:
 		_drag_to((make_input_local(event) as InputEventMouseMotion).position.y)
 		accept_event()
@@ -386,20 +531,46 @@ func _input(event: InputEvent) -> void:
 
 
 func _drag_to(finger_y: float) -> void:
+	if _tap_candidate and absf(finger_y - _press_y) > TAP_SLOP:
+		_tap_candidate = false
 	var mesh_y := clampf(finger_y - _grab_dy, _mesh_min, _mesh_max)
-	var next := (mesh_y - _mesh_min) / maxf(1.0, _mesh_max - _mesh_min)
+	_set_open((mesh_y - _mesh_min) / maxf(1.0, _mesh_max - _mesh_min))
+
+
+func _set_open(next: float) -> void:
+	next = clampf(next, 0.0, 1.0)
 	if is_equal_approx(next, _open):
 		return
 	_open = next
-	var tooth := _tooth_at(mesh_y)
+	var tooth := _tooth_at(_mesh_y())
 	if tooth != _last_tooth:
 		_last_tooth = tooth
 		Haptics.selection()
+	if _open_pct() != _a11y_pct:
+		_a11y_pct = _open_pct()
+		queue_accessibility_update()
 	queue_redraw()
 
 
-func _process(_delta: float) -> void:
+func _step_glide(delta: float) -> void:
+	var step := GLIDE_PER_SEC * delta
+	if absf(_glide_target - _open) <= step:
+		_set_open(_glide_target)
+		_gliding = false
+		_speed = 0.0
+		AudioFeel.stop_zip()
+	else:
+		_set_open(_open + signf(_glide_target - _open) * step)
+
+
+func _process(delta: float) -> void:
+	if not _active:
+		return
 	if not _dragging:
+		_refresh_talkback()
+	if _gliding:
+		_step_glide(delta)
+	if not (_dragging or _gliding):
 		return
 	var now := Time.get_ticks_msec()
 	var mesh_y := _mesh_y()
