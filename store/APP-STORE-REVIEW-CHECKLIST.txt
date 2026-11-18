@@ -1,0 +1,140 @@
+TAPTICO — APP STORE REVIEW CHECKLIST
+Goal: catch rejects before Submit for Review.
+Bundle ID: com.orehruoy.taptico
+IAP: com.orehruoy.taptico.lifetime  (non-consumable Lifetime Unlock)
+Version in export: short 1.0  /  build 1.0.0
+Devices: iPhone + iPad (targeted_device_family = 2)
+
+
+================================================================
+A. BINARY / BUILD  (do this after you finish app fixes)
+================================================================
+[ ] Archive a Release / App Store IPA, not a debug or editor build
+[ ] Bundle ID is exactly com.orehruoy.taptico
+[ ] Version and build numbers are new if you already uploaded 1.0 / 1.0.0
+[ ] ITSAppUsesNonExemptEncryption = false  (already in export preset)
+[ ] StoreKit + Haptics plugins enabled on the iOS export
+[ ] store/ folder is excluded from the IPA (export_presets exclude_filter)
+[ ] Paywall “Reset” / testing button is editor-only and gone on device
+[ ] App launches on a physical iPhone (haptics/tilt do not work in Simulator)
+[ ] Free toys work with no purchase: Combination Lock, Toggle Switches, Magnetic Slider
+[ ] Premium toys open the paywall, not a crash or a blank screen
+[ ] Get Premium buys Lifetime Unlock through Apple’s sheet (no other payment)
+[ ] Restore Purchases is visible on the paywall and works after a sandbox buy
+[ ] Price on the paywall is StoreKit’s localized string, not a stuck "$4.99" on device
+[ ] Closing the paywall still leaves the free toys usable (app is not gated)
+[ ] Enjoy/review prompt can be dismissed and does not block the UI
+[ ] No crash when rotating / iPad window size if iPad is enabled
+
+
+================================================================
+B. IN-APP PURCHASE  (most common first-reject)
+================================================================
+[ ] Product exists in App Store Connect: com.orehruoy.taptico.lifetime
+[ ] Type is Non-Consumable (NOT subscription, NOT consumable)
+[ ] Display name: Lifetime Unlock
+[ ] Description matches what the paywall actually unlocks
+[ ] Price set (US $4.99 or your chosen tier) and available in all sale territories you ship
+[ ] IAP status is Ready to Submit
+[ ] IAP is attached/selected on THIS app version (Review will not see it otherwise)
+[ ] Paid Apps Agreement / banking / tax is Active (IAP is invisible until this is)
+[ ] 1024x1024 IAP image uploaded: store/iap/lifetime-unlock-1024.png
+    (opaque PNG, no transparency, no rounded canvas)
+[ ] Review notes tell them how to find Restore and that it is one-time, not a sub
+[ ] Sandbox: buy, kill app, restore on a second install / other sandbox Apple ID
+
+
+================================================================
+C. APP STORE CONNECT LISTING
+================================================================
+[ ] Name / subtitle match AppStoreMetadata.json (or the copy you actually want)
+[ ] Subtitle + keywords do not claim medical treatment
+    Subtitle: "ASMR Metal Clicks. Quiet Focus"  Keywords omit adhd/anxiety/antistress.
+    Description already says it is not a medical app — keep that sentence.
+[ ] Description, promo text, keywords have no “#1”, fake awards, or other apps’ names
+[ ] Support URL opens in a browser (currently GitHub). Issues page or a simple contact page is fine.
+[ ] Privacy Policy URL opens: https://orehruoy.github.io/Taptico/privacy.html
+[ ] Privacy policy contact email is one you actually read
+    (page currently lists hallanhype@gmail.com; review notes list support@orehruoy.com — pick one story)
+[ ] Category Utilities / Productivity still feels right
+[ ] Age rating 4+ questionnaire is honest (no medical, no unrestricted web, no gambling)
+[ ] Copyright year / name filled
+[ ] Primary language screenshots uploaded
+
+Screenshots (required slots — check what ASC marks with a red * this week):
+[ ] iPhone 6.5" or 6.9" portrait — files in store/iphone-6.5/  (1284x2778)
+    If ASC requires 6.9" (1320x2868) and will not take 1284x2778, regenerate before submit
+[ ] iPad 13" portrait — files in store/ipad-13/  (2064x2752)
+[ ] Do NOT upload _preview-row.png or any contact sheet
+[ ] Screenshot 07 has no dollar amount on the paywall (price is painted out of IMG_0036).
+[ ] App Previews optional: store/previews/Taptico-app-preview-iphone-65.mp4 (886x1920, ~26s)
+    store/previews/Taptico-app-preview-ipad-13.mp4 (1200x1600, ~26s)
+    15–30s, 30 fps. Poster frame at ~5s is the lock.
+
+Review notes (paste from AppStoreMetadata.json, then confirm):
+[ ] Says physical iPhone required
+[ ] Says no login / leave demo fields blank
+[ ] Lists free modules vs premium
+[ ] Product ID, Restore location, no other payment
+[ ] Notes Ambient Pad uses playback audio category (silent switch)
+[ ] Notes Firebase analytics, no ATT, no ads
+[ ] Asks them to approve the IAP with the binary
+
+
+================================================================
+D. PRIVACY LABELS  (second most common reject)
+================================================================
+App uses Firebase / Google Analytics + optional feedback (Web3Forms).
+PrivacyInfo.xcprivacy already declares:
+  - Device ID (analytics + app functionality), not linked, not tracking
+  - Product Interaction (analytics)
+  - Other Usage Data (analytics)
+  - Tracking = false
+  - UserDefaults / boot time / file timestamp / disk space reasons
+
+App Store Connect Privacy Nutrition Labels must MATCH that:
+[ ] Tracking = No  (do not check “used for tracking”)
+[ ] Do not declare IDFA / advertising data
+[ ] Do declare Product Interaction / Device ID (or equivalent) used for Analytics
+[ ] Optional feedback: Contact Info only if they type an email — “not collected unless user provides”
+[ ] No camera / mic / photos usage strings needed (keep those empty)
+[ ] Motion sensors are on-device only. If the exported Info.plist has no
+    NSMotionUsageDescription and review asks, add a one-line “Used to tilt fidget toys.”
+
+
+================================================================
+E. CONTENT / GUIDELINE TRAPS SPECIFIC TO TAPTICO
+================================================================
+[ ] 2.1 Complete app: not a demo, not “coming soon” toys in the UI
+[ ] 2.3.1 Screenshots show the real UI (they do — framed captures)
+[ ] 3.1.1 Only Apple IAP; Restore present; no Venmo/Patreon/link-out to buy
+[ ] 4.0 Design: paywall can be dismissed; X works
+[ ] 5.1.2 No account required
+[ ] 1.4.1 No in-app copy that it treats ADHD/anxiety (search the binary/strings)
+[ ] 2.5.4 If the enjoy sheet emails feedback, it only sends after the user taps send
+[ ] Audio: clicks are fine; Ambient Pad explanation is already in review notes
+
+
+================================================================
+F. LAST 10 MINUTES BEFORE YOU HIT SUBMIT
+================================================================
+[ ] This version’s build is the one you just tested on a phone
+[ ] IAP still attached after the build processed
+[ ] Export compliance question answered: uses only exempt encryption / HTTPS
+[ ] Advertising Identifier: No
+[ ] Content rights: you own the art/audio (or have licenses)
+[ ] No placeholder “lorem” / TODO / test sandbox banners in the UI
+[ ] Contact info in ASC is hallanhype or support@ — and you get those emails
+[ ] You can reply to App Review within 24h if they ask for a video of a fidget
+
+Submit for Review only when A–D are all checked.
+
+
+================================================================
+KNOWN SHARP EDGES (fix or accept the risk)
+================================================================
+1. Keywords "adhd,anxiety" + subtitle "Stress Relief" — change before submit if you want the safest pass.
+2. Screenshot 07 price "$4.99" — change if you want to avoid a 2.3.x screenshot bounce.
+3. Privacy answers in ASC must be filled by hand; export_presets collected_data is empty.
+4. Support URL is the GitHub repo. If the repo is private, Review cannot open it — make it public or use a public page.
+5. Promo social post is NOT part of review. Do not wait on TikTok/Reels to submit.
